@@ -15,33 +15,33 @@ def clean_url(url):
     except:
         return url
 
-def find_candidates_on_google(brand):
-    """
-    Realiza búsquedas en Google para encontrar candidatos.
-    Estrategia: Buscar alternativas directas y discusiones.
-    """
-    candidates = set() # Usamos set para evitar duplicados
+# def find_candidates_on_google(brand):
+#     """
+#     Realiza búsquedas en Google para encontrar candidatos.
+#     Estrategia: Buscar alternativas directas y discusiones.
+#     """
+#     candidates = set() # Usamos set para evitar duplicados
     
-    # 1. Consulta amplia para competidores
-    query_broad = f"top alternatives to {brand} competitors"
+#     # 1. Consulta amplia para competidores
+#     query_broad = f"top alternatives to {brand} competitors"
     
-    print(f"🔎 Buscando en Google: '{query_broad}'...")
+#     print(f"🔎 Buscando en Google: '{query_broad}'...")
     
-    try:
-        # num_results: Cuántos enlaces queremos procesar. 
-        # advanced=True: Nos da objetos con más info si la librería lo soporta.
-        results = search(query_broad, num_results=10, advanced=True)
+#     try:
+#         # num_results: Cuántos enlaces queremos procesar. 
+#         # advanced=True: Nos da objetos con más info si la librería lo soporta.
+#         results = search(query_broad, num_results=10, advanced=True)
         
-        for result in results:
-            # La librería puede devolver objetos o strings dependiendo de la versión
-            url = result.url if hasattr(result, 'url') else result
-            candidates.add(clean_url(url))
+#         for result in results:
+#             # La librería puede devolver objetos o strings dependiendo de la versión
+#             url = result.url if hasattr(result, 'url') else result
+#             candidates.add(clean_url(url))
             
-    except Exception as e:
-        print(f"⚠️ Alerta: Error conectando con Google Search ({e}).")
-        print("   -> Usando modo fallback (si hubiera) o retornando lista vacía.")
+#     except Exception as e:
+#         print(f"⚠️ Alerta: Error conectando con Google Search ({e}).")
+#         print("   -> Usando modo fallback (si hubiera) o retornando lista vacía.")
     
-    return list(candidates)
+#     return list(candidates)
 
 def find_candidates_on_google(brand):
     """
@@ -88,24 +88,25 @@ def find_candidates_on_google(brand):
     return list(candidates)
 
 def analyze_hda_competitor(url, brand_keywords):
-    """Lógica HDA: Validación por coincidencia de keywords (Sin cambios en lógica)."""
+    """Lógica HDA: Validación por coincidencia de keywords."""
     try:
-        # Filtro rápido: Evitar analizar la misma marca o redes sociales genéricas
+        # Filtro rápido
         if "facebook" in url or "twitter" in url or "instagram" in url:
             return {"is_valid": False}
 
-        # SIMULACIÓN DE ANÁLISIS DE CONTENIDO (Para no hacer 20 requests en la demo)
-        # En producción real: response = requests.get(url, headers=HEADERS, timeout=5)
-        # Aquí asumimos que si salió en Google Search con la query "alternatives", ya es relevante.
-        # Refinamos solo nombres muy conocidos para el ejemplo HDA.
+        domain = urlparse(url).netloc.lower()
+
+        # 1. Chequeo directo de palabras clave en el dominio
+        keyword_match = any(kw in domain for kw in brand_keywords)
         
-        domain = urlparse(url).netloc
-        
-        # Lógica simulada mejorada: Si el dominio suena a negocio de música (para el ejemplo)
-        if any(kw in domain for kw in ["music", "audio", "sound", "spotify", "apple", "tidal", "deezer"]):
+        # 2. Chequeo de dominios muy famosos
+        famous_domains = ["google", "box", "onedrive", "apple", "spotify", "amazon"]
+        famous_match = any(famous in domain for famous in famous_domains)
+
+        if keyword_match or famous_match:
              return {
                 "is_valid": True,
-                "justification": f"HDA Detectado: Dominio '{domain}' relevante encontrado en búsqueda de alta intención.",
+                "justification": f"HDA Detectado: El dominio '{domain}' coincide con keywords del sector o es un gigante tecnológico conocido.",
                 "data_availability": "Alta (HDA)"
             }
             
@@ -151,6 +152,61 @@ def analyze_lda_competitor(url):
     return {"is_valid": False}
 
 def run_compas_scan(target_brand):
+    """Orquestador Principal"""
+    print(f"🚀 Iniciando CompasScan Real para: {target_brand}...\n")
+    
+    raw_candidates = find_candidates_on_google(target_brand)
+    
+    if not raw_candidates:
+        print("❌ No se encontraron candidatos.")
+        return {"HDA_Competitors": [], "LDA_Competitors": [], "Note": "Sin resultados."}
+
+    print(f"🔍 Analizando {len(raw_candidates)} candidatos encontrados...\n")
+    
+    # --- CORRECCIÓN AQUÍ: Keywords Dinámicas ---
+    brand_lower = target_brand.lower()
+    
+    if "dropbox" in brand_lower or "drive" in brand_lower:
+        # Keywords para sector Almacenamiento/Nube
+        brand_keywords = ["cloud", "storage", "drive", "file", "share", "box"]
+    elif "spotify" in brand_lower:
+        # Keywords para sector Música
+        brand_keywords = ["music", "streaming", "audio", "sound", "podcast"]
+    else:
+        # Keywords Genéricas
+        brand_keywords = ["software", "app", "online", "platform"]
+    
+    final_report = {
+        "HDA_Competitors": [],
+        "LDA_Competitors": []
+    }
+    
+    # ... (El resto del bucle for sigue igual) ...
+    for url in raw_candidates:
+        if target_brand.lower() in url: continue
+
+        hda = analyze_hda_competitor(url, brand_keywords)
+        if hda["is_valid"]:
+            if not any(d['url'] == url for d in final_report['HDA_Competitors']):
+                final_report["HDA_Competitors"].append({
+                    "url": url,
+                    "justification": hda["justification"]
+                })
+            continue 
+
+        lda = analyze_lda_competitor(url)
+        if lda["is_valid"]:
+             if not any(d['url'] == url for d in final_report['LDA_Competitors']):
+                final_report["LDA_Competitors"].append({
+                    "url": url,
+                    "justification": lda["justification"]
+                })
+    
+    # ... (Resto del return) ...
+    final_report["HDA_Competitors"] = final_report["HDA_Competitors"][:5]
+    final_report["LDA_Competitors"] = final_report["LDA_Competitors"][:3]
+
+    return final_report
     """Orquestador Principal"""
     print(f"🚀 Iniciando CompasScan Real para: {target_brand}...\n")
     
