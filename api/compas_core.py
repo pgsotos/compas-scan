@@ -149,7 +149,14 @@ def analyze_competitor(url, brand_context):
     try:
         domain = urlparse(url).netloc.lower()
         ignored = ["wikipedia", "youtube", "facebook", "instagram", "linkedin", "pinterest", "quora", "reddit"]
-        if any(x in domain for x in ignored): return {"is_valid": False}
+        
+        # 1. DETECCIÓN DE RUIDO CON RAZÓN EXPLÍCITA
+        for ignored_domain in ignored:
+            if ignored_domain in domain:
+                return {
+                    "is_valid": False,
+                    "reason": f"Ruido: Dominio ignorado por ser red social o comunidad ({ignored_domain})."
+                }
 
         keyword_match = any(kw in url.lower() or kw in domain for kw in brand_context["keywords"])
         is_famous = any(f in domain for f in FAMOUS_DOMAINS)
@@ -166,9 +173,10 @@ def analyze_competitor(url, brand_context):
             "classification": "LDA",
             "justification": "Competidor de nicho detectado en búsqueda de alternativas."
         }
-    except Exception:
-        pass
-    return {"is_valid": False}
+    except Exception as e:
+        return {"is_valid": False, "reason": f"Error técnico al analizar: {str(e)}"}
+        
+    return {"is_valid": False, "reason": "No cumple criterios de clasificación."}
 
 def run_compas_scan(user_input):
     print(f"🚀 Iniciando CompasScan (Google API) para: {user_input}...\n")
@@ -189,7 +197,8 @@ def run_compas_scan(user_input):
 
     final_report = {
         "HDA_Competitors": [],
-        "LDA_Competitors": []
+        "LDA_Competitors": [],
+        "Discarded_Candidates": [] # <--- NUEVO CAMPO PARA TRANSPARENCIA
     }
 
     print(f"🔍 Clasificando {len(raw_candidates)} candidatos...")
@@ -206,8 +215,17 @@ def run_compas_scan(user_input):
             else:
                 if not any(d['url'] == url for d in final_report['LDA_Competitors']):
                     final_report["LDA_Competitors"].append(entry)
+        else:
+            # REGISTRAR EL DESCARTE
+            if "reason" in analysis:
+                final_report["Discarded_Candidates"].append({
+                    "url": url,
+                    "reason": analysis["reason"]
+                })
 
     final_report["HDA_Competitors"] = final_report["HDA_Competitors"][:5]
     final_report["LDA_Competitors"] = final_report["LDA_Competitors"][:3]
+    # Opcional: Limitar descartes para no ensuciar el JSON si hay muchos
+    final_report["Discarded_Candidates"] = final_report["Discarded_Candidates"][:5] 
 
     return final_report
