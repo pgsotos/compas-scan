@@ -1,147 +1,173 @@
 import requests
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 from googlesearch import search
+import re
+from collections import Counter
 
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-}
+from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS
 
 def clean_url(url):
+    """Normaliza URLs para comparaciones."""
     try:
+        if not url.startswith('http'):
+            url = 'https://' + url
         parsed = urlparse(url)
         return f"{parsed.scheme}://{parsed.netloc}"
     except:
         return url
 
-def find_candidates_on_google(brand):
-    """
-    Intenta buscar en Google. Si la IP de Vercel está bloqueada (común),
-    activa un 'Mock Mode' para garantizar que la demo funcione.
-    """
-    candidates = set()
-    query_broad = f"related:{brand}" if "." in brand else f"{brand} competitors"
+def extract_keywords_from_text(text, top_n=5):
+    """Extrae las palabras clave más relevantes de un texto."""
+    if not text: return []
     
-    print(f"🔎 Buscando: '{query_broad}'...")
+    words = re.findall(r'\w+', text.lower())
     
-    # 1. Intento Real (Google Search)
+    meaningful_words = [
+        w for w in words 
+        if w not in STOP_WORDS and len(w) > 2 and not w.isdigit()
+    ]
+    
+    counter = Counter(meaningful_words)
+    return [word for word, count in counter.most_common(top_n)]
+
+def get_brand_context(user_input):
+    """
+    Identifica si es URL o Nombre, obtiene la URL oficial y scrapea contexto.
+    """
+    context = {
+        "name": user_input,
+        "url": "",
+        "keywords": []
+    }
+
+    print(f"Analizando contexto para: '{user_input}'...")
+
+    if "." in user_input and " " not in user_input:
+        context["url"] = clean_url(user_input)
+        domain_part = urlparse(context["url"]).netloc.replace("www.", "").split('.')[0]
+        context["name"] = domain_part.capitalize()
+        print(f"-> Detectado como URL. Dominio: {context['url']}")
+    else:
+        try:
+            print("-> Detectado como Nombre. Buscando sitio oficial...")
+            results = search(f"{user_input} official site", num_results=1, sleep_interval=1)
+            found_url = next(results, None)
+            if found_url:
+                context["url"] = clean_url(found_url)
+                print(f"-> Sitio oficial encontrado: {context['url']}")
+            else:
+                print("No se encontró sitio oficial en Google.")
+                return context
+        except Exception as e:
+            print(f"Error buscando sitio oficial: {e}")
+            return context
+
     try:
-        # sleep_interval alto para intentar mitigar bloqueos
-        results = search(query_broad, num_results=5, sleep_interval=2)
-        for url in results:
-            candidates.add(clean_url(url))
-    except Exception as e:
-        print(f"⚠️ Error Google Search (Probable bloqueo de IP): {e}")
-    
-    # 2. Circuit Breaker / Mock Mode
-    # Si la lista está vacía (bloqueo), inyectamos datos basados en la marca
-    # para que la herramienta no falle en la presentación.
-    if not candidates:
-        print("🛡️ Alerta: Google bloqueó la petición. Activando 'Mock Mode' para Demo.")
-        brand_lower = brand.lower()
-        
-        if "dropbox" in brand_lower or "box" in brand_lower:
-             candidates.update(["https://www.box.com", "https://www.google.com/drive", "https://onedrive.live.com"])
-        elif "spotify" in brand_lower or "apple" in brand_lower:
-             candidates.update(["https://tidal.com", "https://www.deezer.com", "https://www.apple.com/apple-music"])
-        elif "netflix" in brand_lower or "hulu" in brand_lower:
-             candidates.update(["https://www.hulu.com", "https://www.disneyplus.com", "https://www.hbomax.com"])
-        elif "slack" in brand_lower:
-             candidates.update(["https://www.microsoft.com/teams", "https://discord.com", "https://mattermost.com"])
+        response = requests.get(context["url"], headers=HEADERS, timeout=5)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            page_title = soup.title.string if soup.title else ""
+            meta = soup.find('meta', attrs={'name': 'description'})
+            meta_desc = meta.get('content', '') if meta else ""
+            
+            full_text = f"{page_title} {meta_desc}"
+            context["keywords"] = extract_keywords_from_text(full_text)
+            print(f"-> Contexto extraído: {context['keywords']}")
         else:
-            # Fallback genérico
-            candidates.update(["https://competidor-ejemplo-1.com", "https://competidor-ejemplo-2.com"])
+            print(f"El sitio respondió con error {response.status_code}")
+    except Exception as e:
+        print(f"Error analizando el sitio de la marca: {e}")
+
+    return context
+
+def find_candidates_on_google(brand_name, brand_url):
+    """Busca competidores usando nombre y URL."""
+    candidates = set()
+    queries = [
+        f"top alternatives to {brand_name}",
+        f"sites like {brand_name}"
+    ]
+    
+    if brand_url:
+        domain = urlparse(brand_url).netloc
+        queries.append(f"related:{domain}")
+
+    print(f"Buscando competidores en Google...")
+    
+    for q in queries:
+        try:
+            results = search(q, num_results=5, sleep_interval=1)
+            for url in results:
+                clean = clean_url(url)
+                if brand_name.lower() not in clean.lower() and (not brand_url or brand_url not in clean):
+                    candidates.add(clean)
+        except Exception:
+            pass
             
     return list(candidates)
 
-def analyze_hda_competitor(url, brand_keywords):
+def analyze_competitor(url, brand_context):
     try:
-        if "facebook" in url or "twitter" in url or "instagram" in url:
-            return {"is_valid": False}
-
         domain = urlparse(url).netloc.lower()
-        
-        keyword_match = any(kw in domain for kw in brand_keywords)
-        
-        famous_domains = ["google", "box", "onedrive", "apple", "spotify", "amazon", "disney", "hbo", "hulu", "primevideo", "netflix"]
-        famous_match = any(famous in domain for famous in famous_domains)
+        ignored = ["wikipedia", "youtube", "facebook", "instagram", "linkedin", "pinterest", "quora", "reddit"]
+        if any(x in domain for x in ignored): return {"is_valid": False}
 
-        if keyword_match or famous_match:
+        keyword_match = any(kw in url.lower() or kw in domain for kw in brand_context["keywords"])
+        is_famous = any(f in domain for f in FAMOUS_DOMAINS)
+        
+        if is_famous or (keyword_match and len(domain) < 25):
              return {
                 "is_valid": True,
-                "justification": f"HDA: Dominio '{domain}' relevante o gigante del sector.",
-                "data_availability": "Alta (HDA)"
+                "classification": "HDA",
+                "justification": f"Dominio relevante '{domain}' coincide con contexto o es un gigante digital."
             }
-    except Exception:
-        pass
-    return {"is_valid": False}
-
-def analyze_lda_competitor(url):
-    try:
-        try:
-            response = requests.head(url, headers=HEADERS, timeout=3)
-        except:
-            response = requests.get(url, headers=HEADERS, timeout=3)
         
-        if response.status_code in [403, 503] or "cloudflare" in response.text.lower():
-             return {
-                 "is_valid": True,
-                 "justification": "LDA: Protección técnica o anti-bot detectada.",
-                 "data_availability": "Baja (LDA)"
-             }
-    except requests.exceptions.ConnectTimeout:
         return {
-            "is_valid": True, 
-            "justification": "LDA: Timeout de conexión.",
-            "data_availability": "Baja (LDA)"
+            "is_valid": True,
+            "classification": "LDA",
+            "justification": "Competidor de nicho detectado en búsqueda de alternativas."
         }
     except Exception:
         pass
-
     return {"is_valid": False}
 
-def run_compas_scan(target_brand):
-    print(f"🚀 Scan Real: {target_brand}...")
+def run_compas_scan(user_input):
+    print(f"🚀 Iniciando CompasScan para: {user_input}...\n")
     
-    raw_candidates = find_candidates_on_google(target_brand)
+    context = get_brand_context(user_input)
+    brand_name = context["name"] if context["name"] else user_input
+    
+    raw_candidates = find_candidates_on_google(brand_name, context["url"])
     
     if not raw_candidates:
-        return {"HDA_Competitors": [], "LDA_Competitors": [], "Note": "Sin resultados."}
+        print("Alerta: Bloqueo de Google detectado.")
+        return {
+            "target": brand_name,
+            "HDA_Competitors": [], 
+            "LDA_Competitors": [], 
+            "Note": "Búsqueda bloqueada por proveedor."
+        }
 
-    brand_lower = target_brand.lower()
-    
-    if "dropbox" in brand_lower or "drive" in brand_lower:
-        brand_keywords = ["cloud", "storage", "drive", "file", "share", "box"]
-    elif "spotify" in brand_lower:
-        brand_keywords = ["music", "streaming", "audio", "sound", "podcast"]
-    elif "netflix" in brand_lower or "hbo" in brand_lower or "hulu" in brand_lower:
-        brand_keywords = ["video", "tv", "stream", "plus", "max", "play"]
-    else:
-        brand_keywords = ["software", "app", "online", "platform"]
-    
     final_report = {
         "HDA_Competitors": [],
         "LDA_Competitors": []
     }
 
+    print(f"Clasificando {len(raw_candidates)} candidatos...")
+
     for url in raw_candidates:
-        if target_brand.lower() in url: continue
-
-        hda = analyze_hda_competitor(url, brand_keywords)
-        if hda["is_valid"]:
-            if not any(d['url'] == url for d in final_report['HDA_Competitors']):
-                final_report["HDA_Competitors"].append({
-                    "url": url,
-                    "justification": hda["justification"]
-                })
-            continue 
-
-        lda = analyze_lda_competitor(url)
-        if lda["is_valid"]:
-             if not any(d['url'] == url for d in final_report['LDA_Competitors']):
-                final_report["LDA_Competitors"].append({
-                    "url": url,
-                    "justification": lda["justification"]
-                })
+        analysis = analyze_competitor(url, context)
+        
+        if analysis["is_valid"]:
+            entry = {"url": url, "justification": analysis["justification"]}
+            
+            if analysis["classification"] == "HDA":
+                if not any(d['url'] == url for d in final_report['HDA_Competitors']):
+                    final_report["HDA_Competitors"].append(entry)
+            else:
+                if not any(d['url'] == url for d in final_report['LDA_Competitors']):
+                    final_report["LDA_Competitors"].append(entry)
 
     final_report["HDA_Competitors"] = final_report["HDA_Competitors"][:5]
     final_report["LDA_Competitors"] = final_report["LDA_Competitors"][:3]
