@@ -6,6 +6,7 @@ import re
 from collections import Counter
 
 from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS, IGNORED_DOMAINS, IGNORED_SUBDOMAINS
+from .gemini_service import get_competitors_from_gemini
 
 def clean_url(url):
     """Normaliza URLs para comparaciones."""
@@ -309,10 +310,41 @@ def analyze_competitor(candidate, brand_context):
     return {"is_valid": False, "reason": f"Baja relevancia (Score {score})."}
 
 def run_compas_scan(user_input):
-    print(f"🚀 Iniciando CompasScan (Smart Search) para: {user_input}...\n")
+    print(f"🚀 Iniciando CompasScan (Smart Search + Gemini) para: {user_input}...\n")
     
     context = get_brand_context(user_input)
     brand_name = context["name"] if context["name"] else user_input
+    
+    final_report = {
+        "HDA_Competitors": [],
+        "LDA_Competitors": [],
+        "Discarded_Candidates": []
+    }
+
+    # --- ESTRATEGIA 1: GEMINI (Consultor Directo) ---
+    # Intentamos obtener la lista limpia directamente de la IA
+    gemini_candidates = get_competitors_from_gemini(brand_name)
+    
+    if gemini_candidates:
+        print(f"✨ Usando resultados de Gemini como fuente principal.")
+        for cand in gemini_candidates:
+            classification = cand.get("gemini_type", "LDA")
+            entry = {
+                "name": cand.get("title").split(" - ")[0],
+                "url": cand.get("clean_url"),
+                "justification": f"Identificado por IA: {cand.get('snippet')}"
+            }
+            
+            if classification == "HDA":
+                final_report["HDA_Competitors"].append(entry)
+            else:
+                final_report["LDA_Competitors"].append(entry)
+                
+        # Si Gemini funcionó, retornamos directamente (evitamos ruido de Google Search)
+        return final_report
+
+    # --- ESTRATEGIA 2: GOOGLE SEARCH (Fallback) ---
+    print("⚠️ Gemini no devolvió resultados o no está configurado. Usando búsqueda tradicional...")
     
     # AHORA PASAMOS EL CONTEXTO A LA BÚSQUEDA
     raw_candidates = find_candidates_on_google(brand_name, context)
@@ -320,20 +352,17 @@ def run_compas_scan(user_input):
     if not raw_candidates:
         return {"target": brand_name, "HDA_Competitors": [], "LDA_Competitors": [], "Note": "Sin resultados."}
 
-    final_report = {
-        "HDA_Competitors": [],
-        "LDA_Competitors": [],
-        "Discarded_Candidates": []
-    }
-
-    print(f"🔍 Clasificando {len(raw_candidates)} candidatos...")
+    print(f"🔍 Clasificando {len(raw_candidates)} candidatos (Método Clásico)...")
 
     for candidate in raw_candidates:
         analysis = analyze_competitor(candidate, context)
         
+        # Extraer nombre limpio del dominio
+        domain_clean = urlparse(candidate['clean_url']).netloc.replace("www.", "").split('.')[0].capitalize()
+
         entry = {
+            "name": domain_clean,
             "url": candidate['clean_url'],
-            "title": candidate.get('title', '')[:60] + "...",
             "justification": analysis.get("justification", "")
         }
 
