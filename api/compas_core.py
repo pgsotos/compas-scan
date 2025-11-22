@@ -5,8 +5,6 @@ from googlesearch import search
 import re
 from collections import Counter
 
-# --- IMPORTACIÓN MODULAR ---
-# Traemos los datos estáticos desde nuestro nuevo archivo constants.py
 from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS
 
 def clean_url(url):
@@ -43,30 +41,28 @@ def get_brand_context(user_input):
         "keywords": []
     }
 
-    print(f"🧠 Analizando contexto para: '{user_input}'...")
+    print(f"Analizando contexto para: '{user_input}'...")
 
-    # A. Detección de URL vs Nombre
     if "." in user_input and " " not in user_input:
         context["url"] = clean_url(user_input)
         domain_part = urlparse(context["url"]).netloc.replace("www.", "").split('.')[0]
         context["name"] = domain_part.capitalize()
-        print(f"   -> Input detectado como URL. Dominio: {context['url']}")
+        print(f"-> Detectado como URL. Dominio: {context['url']}")
     else:
         try:
-            print("   -> Input detectado como Nombre. Buscando sitio oficial...")
+            print("-> Detectado como Nombre. Buscando sitio oficial...")
             results = search(f"{user_input} official site", num_results=1, sleep_interval=1)
             found_url = next(results, None)
             if found_url:
                 context["url"] = clean_url(found_url)
-                print(f"   -> Sitio oficial encontrado: {context['url']}")
+                print(f"-> Sitio oficial encontrado: {context['url']}")
             else:
-                print("⚠️ No se encontró sitio oficial en Google.")
+                print("No se encontró sitio oficial en Google.")
                 return context
         except Exception as e:
-            print(f"⚠️ Error buscando sitio oficial: {e}")
+            print(f"Error buscando sitio oficial: {e}")
             return context
 
-    # B. Extracción de Keywords
     try:
         response = requests.get(context["url"], headers=HEADERS, timeout=5)
         if response.status_code == 200:
@@ -77,11 +73,11 @@ def get_brand_context(user_input):
             
             full_text = f"{page_title} {meta_desc}"
             context["keywords"] = extract_keywords_from_text(full_text)
-            print(f"   -> Contexto extraído: {context['keywords']}")
+            print(f"-> Contexto extraído: {context['keywords']}")
         else:
-            print(f"⚠️ El sitio respondió con error {response.status_code}")
+            print(f"El sitio respondió con error {response.status_code}")
     except Exception as e:
-        print(f"⚠️ Error analizando el sitio de la marca: {e}")
+        print(f"Error analizando el sitio de la marca: {e}")
 
     return context
 
@@ -97,7 +93,7 @@ def find_candidates_on_google(brand_name, brand_url):
         domain = urlparse(brand_url).netloc
         queries.append(f"related:{domain}")
 
-    print(f"🔎 Buscando competidores en Google...")
+    print(f"Buscando competidores en Google...")
     
     for q in queries:
         try:
@@ -117,7 +113,6 @@ def analyze_competitor(url, brand_context):
         ignored = ["wikipedia", "youtube", "facebook", "instagram", "linkedin", "pinterest", "quora", "reddit"]
         if any(x in domain for x in ignored): return {"is_valid": False}
 
-        # Criterio HDA usando constantes importadas
         keyword_match = any(kw in url.lower() or kw in domain for kw in brand_context["keywords"])
         is_famous = any(f in domain for f in FAMOUS_DOMAINS)
         
@@ -125,7 +120,7 @@ def analyze_competitor(url, brand_context):
              return {
                 "is_valid": True,
                 "classification": "HDA",
-                "justification": f"Dominio relevante '{domain}' coincide con contexto {brand_context['keywords'][:2]} o es un gigante digital."
+                "justification": f"Dominio relevante '{domain}' coincide con contexto o es un gigante digital."
             }
         
         return {
@@ -138,7 +133,7 @@ def analyze_competitor(url, brand_context):
     return {"is_valid": False}
 
 def run_compas_scan(user_input):
-    print(f"🚀 Iniciando CompasScan v2 (Modular) para: {user_input}...\n")
+    print(f"🚀 Iniciando CompasScan para: {user_input}...\n")
     
     context = get_brand_context(user_input)
     brand_name = context["name"] if context["name"] else user_input
@@ -146,7 +141,7 @@ def run_compas_scan(user_input):
     raw_candidates = find_candidates_on_google(brand_name, context["url"])
     
     if not raw_candidates:
-        print("🛡️ Alerta: Bloqueo de Google detectado.")
+        print("Alerta: Bloqueo de Google detectado.")
         return {
             "target": brand_name,
             "HDA_Competitors": [], 
@@ -159,7 +154,7 @@ def run_compas_scan(user_input):
         "LDA_Competitors": []
     }
 
-    print(f"🔍 Clasificando {len(raw_candidates)} candidatos...")
+    print(f"Clasificando {len(raw_candidates)} candidatos...")
 
     for url in raw_candidates:
         analysis = analyze_competitor(url, context)
