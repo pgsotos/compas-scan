@@ -1,0 +1,18 @@
+{
+    "status": "success",
+    "target": "Hulu",
+    "data": {
+      "HDA_Competitors": [
+        {
+          "url": "https://www.disneyplus.com",
+          "justification": "HDA: Dominio 'www.disneyplus.com' relevante o gigante del sector."
+        },
+        {
+          "url": "https://www.hbomax.com",
+          "justification": "HDA: Dominio 'www.hbomax.com' relevante o gigante del sector."
+        }
+      ],
+      "LDA_Competitors": []
+    },
+    "message": "Escaneo completado y guardado en base de datos."
+  }
