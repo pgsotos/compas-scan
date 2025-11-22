@@ -10,7 +10,9 @@ STOP_WORDS = {
     "home", "page", "site", "website", "copyright", "rights", "reserved", "login",
     "sign", "up", "contact", "us", "privacy", "policy", "terms", "get", "best",
     "new", "use", "el", "la", "los", "las", "y", "o", "de", "en", "para", "por", 
-    "con", "una", "un", "es", "su", "inicio", "sitio", "web", "gratis"
+    "con", "una", "un", "es", "su", "inicio", "sitio", "web", "gratis",
+    "com", "net", "org", "www", "http", "https", "inc", "ltd", "llc", 
+    "app", "platform", "software", "online"
 }
 
 # Lista auxiliar de Gigantes Digitales (Agnóstica a la industria)
