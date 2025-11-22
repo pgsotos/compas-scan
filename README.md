@@ -55,10 +55,22 @@ La herramienta aplica algoritmos diferenciados según el tipo de competidor dete
     SUPABASE_KEY=tu-anon-key
     ```
 
-3.  **Ejecutar Prueba Local:**
-    ```bash
-    uv run python test_local.py
-    ```
+### 🧪 Ejecutar Pruebas Dinámicas
+
+El script `test_local.py` acepta un argumento opcional para probar diferentes marcas o URLs. El sistema normaliza automáticamente el formato:
+
+```bash
+# 1. Nombre de Marca (Búsqueda automática)
+uv run python test_local.py "Asana"
+
+# 2. Dominio simple (Detectado como URL)
+uv run python test_local.py "hubspot.com"
+
+# 3. URL con subdominio (www)
+uv run python test_local.py "www.nike.com"
+
+# 4. URL completa con protocolo
+uv run python test_local.py "https://www.spotify.com"
 
 ## ☁️ Uso de la API (Producción)
 
