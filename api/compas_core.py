@@ -17,6 +17,17 @@ def clean_url(url):
     except:
         return url
 
+def get_root_domain(url):
+    """Extrae el dominio raíz (ej. us.puma.com -> puma.com)."""
+    try:
+        parsed = urlparse(url if url.startswith('http') else f'https://{url}')
+        parts = parsed.netloc.split('.')
+        if len(parts) > 2:
+            return '.'.join(parts[-2:]) # Toma los últimos 2 (ej. puma.com)
+        return parsed.netloc
+    except:
+        return url
+
 def extract_keywords_from_text(text, top_n=5):
     """Extrae las palabras clave más relevantes de un texto."""
     if not text: return []
@@ -85,10 +96,11 @@ def get_brand_context(user_input):
     except Exception as e:
         print(f"⚠️ Error analizando el sitio de la marca: {e}")
 
-    # --- FALLBACK DE EMERGENCIA (CRÍTICO PARA AMAZON) ---
+    # --- FALLBACK DE EMERGENCIA (CRÍTICO PARA AMAZON/SPOTIFY) ---
     if not context["keywords"]:
-        print("⚠️ Contexto vacío (Sitio protegido o sin texto). Aplicando Fallback Genérico.")
-        context["keywords"] = ["shop", "store", "online", "marketplace", "buy", "products", "ecommerce"]
+        print("⚠️ Contexto vacío (Sitio protegido o sin texto). Aplicando Fallback Neutro.")
+        # Usamos términos genéricos que funcionan para SaaS, Apps y Servicios
+        context["keywords"] = ["service", "platform", "app", "software", "online"]
     else:
         print(f"   -> Contexto extraído: {context['keywords']}")
 
@@ -175,28 +187,45 @@ def find_candidates_on_google(brand_name, context):
     
     # 1. Estrategia Técnica (Related) - La más limpia
     if context.get("url"):
-        domain = urlparse(context["url"]).netloc
-        queries.append(f"related:{domain}")
+        root_domain = get_root_domain(context["url"])
+        queries.append(f"related:{root_domain}")
+        print(f"   -> Usando Root Domain para related: {root_domain}")
     
     # 2. Estrategia Semántica (Keywords)
-    # Usamos la keyword más relevante del contexto para acotar la búsqueda
-    # Ej: "sportswear brands like Puma" en vez de "alternatives to Puma"
-    top_keyword = context["keywords"][0] if context["keywords"] else "competitors"
+    # Usamos las top 2 keywords para tener variedad
+    keywords = context["keywords"][:2] if context["keywords"] else ["competitors"]
     
-    queries.append(f"{top_keyword} brands like {brand_name}")
-    queries.append(f"{brand_name} {top_keyword} competitors")
-    
-    # Eliminamos la query tóxica "top alternatives to..."
+    # Queries Directas (Alta probabilidad de HDA)
+    queries.append(f"similar brands to {brand_name}")
+    queries.append(f"{brand_name} competitors")
+
+    for kw in keywords:
+        # Patrón 1: Comparativa directa
+        queries.append(f"{kw} brands like {brand_name}")
+        
+        # Patrón 2: Alternativas específicas
+        queries.append(f"alternatives to {brand_name} for {kw}")
+        
+        # Patrón 3: Líderes de categoría (sin mencionar la marca, para encontrar a los grandes)
+        queries.append(f"best {kw} brands")
+
+    # Eliminamos duplicados preservando orden
+    queries = list(dict.fromkeys(queries))
 
     print(f"🔎 Buscando con contexto: {queries}...")
     
     for q in queries:
-        # Pedimos 10 para tener variedad
+        # Pedimos 10 (Límite máximo de la API por request)
         items = search_google_api(q, num=10)
         
+        if not items: continue
+
         for item in items:
             raw_link = item.get('link')
             if not raw_link: continue
+            
+            # DEBUG: Ver qué está llegando
+            # print(f"   RAW: {raw_link}")
                 
             clean = clean_url(raw_link)
             

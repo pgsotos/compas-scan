@@ -14,7 +14,7 @@ STOP_WORDS = {
     # Términos técnicos de URL y ruido
     "com", "net", "org", "www", "http", "https", "inc", "ltd", "llc", 
     "app", "platform", "software", "solution", "solutions", "services", "online", "digital",
-    "one", "all", "business", "businesses"
+    "one", "all", "business", "businesses", "player"
 }
 
 # Lista auxiliar de Gigantes Digitales (Agnóstica a la industria)
