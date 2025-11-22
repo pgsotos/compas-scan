@@ -55,7 +55,7 @@ La herramienta aplica algoritmos diferenciados según el tipo de competidor dete
     SUPABASE_KEY=tu-anon-key
     ```
 
-### 🧪 Ejecutar Pruebas Dinámicas
+## 🧪 Ejecutar Pruebas Dinámicas
 
 El script `test_local.py` acepta un argumento opcional para probar diferentes marcas o URLs. El sistema normaliza automáticamente el formato:
 
@@ -71,6 +71,7 @@ uv run python test_local.py "www.nike.com"
 
 # 4. URL completa con protocolo
 uv run python test_local.py "https://www.spotify.com"
+```
 
 ## ☁️ Uso de la API (Producción)
 
