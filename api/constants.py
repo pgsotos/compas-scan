@@ -39,3 +39,15 @@ FAMOUS_DOMAINS = {
     "gucci", "lv", "lululemon", "decathlon", "thenorthface", "patagonia",
     "shein", "asos", "uniqlo", "jd", "footlocker"
 }
+
+# Dominios que siempre son ruido (Redes Sociales, Wikis, Foros)
+IGNORED_DOMAINS = {
+    "wikipedia", "youtube", "facebook", "instagram", "linkedin", 
+    "pinterest", "quora", "reddit", "twitter", "tiktok"
+}
+
+# Subdominios específicos a excluir (App Stores, Herramientas)
+IGNORED_SUBDOMAINS = {
+    "apps.apple.com", "play.google.com", "chrome.google.com",
+    "support.google.com", "accounts.google.com"
+}

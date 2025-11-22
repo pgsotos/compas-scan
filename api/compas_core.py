@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import re
 from collections import Counter
 
-from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS
+from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS, IGNORED_DOMAINS, IGNORED_SUBDOMAINS
 
 def clean_url(url):
     """Normaliza URLs para comparaciones."""
@@ -223,10 +223,18 @@ def analyze_competitor(candidate, brand_context):
     domain = urlparse(clean_link).netloc.lower()
 
     # 1. Filtro de Ruido Básico
-    ignored = ["wikipedia", "youtube", "facebook", "instagram", "linkedin", "pinterest", "quora", "reddit"]
-    for ig in ignored:
+    # 1. Filtro de Ruido Básico (Dominios y Subdominios)
+    # A. Dominios Ignorados
+    for ig in IGNORED_DOMAINS:
         if ig in domain:
             return {"is_valid": False, "reason": f"Ruido: Dominio ignorado ({ig})."}
+
+    # B. Subdominios Ignorados (App Stores)
+    # Verificamos si el clean_link empieza con alguno de los subdominios ignorados
+    # o si el dominio exacto está en la lista.
+    clean_no_proto = clean_link.replace("https://", "").replace("http://", "")
+    if any(clean_no_proto.startswith(sub) for sub in IGNORED_SUBDOMAINS):
+         return {"is_valid": False, "reason": f"Ruido: Subdominio ignorado ({clean_no_proto})."}
 
     # 2. DETECCIÓN DE BLOGS Y AGREGADORES
     
