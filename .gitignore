@@ -19,3 +19,6 @@ env/
 # --- OS ---
 .DS_Store
 Thumbs.db
+
+# --- Artefactos de Ejecución ---
+results.json
