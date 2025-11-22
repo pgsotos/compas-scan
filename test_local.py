@@ -17,7 +17,7 @@ else:
     # ----------------------------------------------------
     # Datos de Prueba
     # ----------------------------------------------------
-    brand_to_test = "Spotify_Test_Guardado"
+    brand_to_test = "Dropbox"
     print(f"🧪 Testeando el flujo de CompasScan para: {brand_to_test}")
 
     # 1. Ejecutar la lógica de escaneo (Módulo Core)
