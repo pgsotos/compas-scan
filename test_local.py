@@ -1,6 +1,7 @@
 # Archivo: test_local.py
 import os
 import sys
+import json  # <--- Necesario para guardar el archivo
 from dotenv import load_dotenv
 
 # Carga las variables del archivo .env
@@ -30,6 +31,24 @@ else:
     success = db.save_scan_results(brand_to_test, report)
 
     if success:
-        print(f"\n✨ ÉXITO COMPLETO: Revisa tu tabla 'competitor_scans' en Supabase.")
+        print(f"\n✨ ÉXITO COMPLETO en Supabase.")
+        
+        # --- NUEVA FUNCIONALIDAD: Actualizar results.json ---
+        try:
+            # Envolvemos el reporte en la misma estructura que da la API
+            final_output = {
+                "status": "success",
+                "target": brand_to_test,
+                "data": report,
+                "message": "Escaneo completado y guardado en base de datos (Generado localmente)."
+            }
+            
+            with open("results.json", "w", encoding="utf-8") as f:
+                json.dump(final_output, f, indent=2, ensure_ascii=False)
+            
+            print("📄 Archivo 'results.json' actualizado con los últimos resultados.")
+        except Exception as e:
+            print(f"⚠️ No se pudo actualizar results.json: {e}")
+            
     else:
         print("\n❌ FALLO: Revisa la terminal para ver errores.")
