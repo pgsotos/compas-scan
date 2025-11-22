@@ -6,35 +6,43 @@
 
 **CompasScan** es una herramienta automatizada que, dada una marca o sitio web, escanea el entorno digital para identificar a sus competidores más relevantes. La herramienta distingue inteligentemente entre dos escenarios de disponibilidad de datos:
 
-1.  **Alta Disponibilidad (HDA):** Marcas globales donde el reto es filtrar el ruido.
+1.  **Alta Disponibilidad (HDA):** Marcas globales donde el reto es filtrar el ruido (blogs, noticias).
 2.  **Baja Disponibilidad (LDA):** Marcas de nicho donde el reto es encontrar evidencia oculta.
 
 ## 🚀 Arquitectura Técnica (Stack Gratuito)
 
-El proyecto fue diseñado para ser **costo cero** y **mantenimiento cero**, utilizando una arquitectura moderna y escalable:
+El proyecto fue diseñado para ser **costo cero**, resiliente y escalable:
 
-* **Core:** Python 3.9+ (Lógica de Scrapeo y Clasificación).
+* **Core:** Python 3.9+ (Lógica de Scrapeo y Clasificación con Scoring).
 * **Infraestructura:** Vercel Serverless Functions (Ejecución bajo demanda).
 * **Base de Datos:** Supabase (PostgreSQL para historial de escaneos).
-* **Descubrimiento:** Google Search API (vía librería `googlesearch-python`).
+* **Descubrimiento:** **Google Custom Search JSON API** (Búsqueda oficial y estable).
 * **Gestión de Paquetes:** `uv` (Gestión de entornos ultra-rápida).
 
 ## 🧠 Lógica de Clasificación & Evidencia
 
-La herramienta aplica algoritmos diferenciados según el tipo de competidor detectado:
+La herramienta aplica un algoritmo de **Puntuación (Scoring)** para clasificar candidatos:
 
 ### 🏢 Caso A: Competidores HDA (Globales/Masivos)
-* **El Problema:** Exceso de ruido (ej. blogs de noticias mencionando a la marca).
-* **Nuestra Solución:** Filtro de **Co-ocurrencia de Palabras Clave**.
-* **Criterio:** Un dominio solo se clasifica como HDA si contiene palabras clave de intención comercial (ej. "pricing", "plan", "streaming") o pertenece a una lista de "Gigantes Digitales" (whitelisted).
+* **El Problema:** Exceso de "listicles" (ej. "Top 10 alternativas a Nike").
+* **Nuestra Solución:** **Sistema de Scoring Anti-Agregadores**.
+    * Se penalizan dominios con títulos de blog ("Top", "Best", "Alternatives").
+    * Se premian dominios "Gigantes" (listas blancas) y coincidencias de contexto semántico.
+    * **Criterio:** Score > 45 puntos.
 * **Output:** Top 5 competidores directos validados.
 
 ### 👻 Caso B: Competidores LDA (Nicho/Protegidos)
 * **El Problema:** Falta de datos públicos o estructurados.
-* **Interpretación de Evidencia (Justificación Técnica):**
-    Para este MVP sin proxies rotativos de pago, adoptamos la **"Inferencia por Protección"**.
-    * Si un sitio de nicho identificado en la búsqueda presenta **medidas defensivas avanzadas** (Cloudflare, Bloqueo 403/503 a scripts), lo clasificamos como **Evidencia de Competencia Alta**.
-    * *¿Por qué?* Una "panadería de barrio" simple rara vez tiene protección anti-bot nivel empresarial. Si el sitio protege sus datos, implica sofisticación técnica y valor comercial, validándolo como un competidor relevante que merece análisis manual.
+* **Interpretación de Evidencia:**
+    * Se analizan los *snippets* de búsqueda para encontrar coincidencias de palabras clave del nicho.
+    * Se detecta si el sitio tiene protecciones técnicas (Cloudflare, 403), usándolo como inferencia de valor comercial.
+    * **Criterio:** Score positivo (> 0) pero sin llegar a ser un Gigante.
+
+## 🛡️ Resiliencia y "Mock Mode"
+
+Para garantizar la estabilidad en demos y entornos de desarrollo (donde la cuota de la API puede agotarse):
+* **Circuit Breaker:** Si la API de Google devuelve error de cuota (429) o falla, el sistema activa automáticamente el **Mock Mode**.
+* **Datos de Respaldo:** Inyecta candidatos simulados relevantes para marcas clave (Nike, Asana, etc.) para asegurar que el flujo de la aplicación nunca se rompa.
 
 ## 🛠️ Instalación y Desarrollo Local
 
@@ -49,10 +57,15 @@ La herramienta aplica algoritmos diferenciados según el tipo de competidor dete
     ```
 
 2.  **Configurar Variables de Entorno:**
-    Crea un archivo `.env` en la raíz con tus credenciales de Supabase:
+    Crea un archivo `.env` en la raíz con tus credenciales:
     ```env
-    SUPABASE_URL=[https://tu-proyecto.supabase.co](https://tu-proyecto.supabase.co)
+    # Base de Datos
+    SUPABASE_URL=[https://tu-proyecto.supabase.co]
     SUPABASE_KEY=tu-anon-key
+
+    # Google Search API (Obligatorio para búsqueda real)
+    GOOGLE_API_KEY=tu_api_key_de_google_cloud
+    GOOGLE_CSE_ID=tu_search_engine_id_cx
     ```
 
 ## 🧪 Ejecutar Pruebas Dinámicas
@@ -71,19 +84,3 @@ uv run python test_local.py "www.nike.com"
 
 # 4. URL completa con protocolo
 uv run python test_local.py "https://www.spotify.com"
-```
-
-## ☁️ Uso de la API (Producción)
-
-La herramienta está desplegada en Vercel y accesible vía HTTP GET.
-
-**Endpoint:**
-`https://compas-scan.vercel.app/api/index`
-
-**Parámetros:**
-* `brand`: Nombre de la marca a analizar (Ej: "Spotify", "Hulu", "Slack").
-
-**Ejemplo de Llamada (cURL):**
-
-```bash
-curl "https://compas-scan.vercel.app/api/index?brand=Dropbox"
