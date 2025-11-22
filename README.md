@@ -71,5 +71,6 @@ La herramienta está desplegada en Vercel y accesible vía HTTP GET.
 * `brand`: Nombre de la marca a analizar (Ej: "Spotify", "Hulu", "Slack").
 
 **Ejemplo de Llamada (cURL):**
+
 ```bash
-curl "[https://compas-scan.vercel.app/api/index?brand=Dropbox](https://compas-scan.vercel.app/api/index?brand=Dropbox)"
+curl "https://compas-scan.vercel.app/api/index?brand=Dropbox"
