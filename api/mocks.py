@@ -1,7 +1,8 @@
-from .constants import HEADERS
 from urllib.parse import urlparse
+from typing import List, Dict, Any, Union
 
-def clean_url(url):
+def clean_url(url: Union[str, None]) -> str:
+    if not url: return ""
     try:
         if not url.startswith('http'):
             url = 'https://' + url
@@ -10,13 +11,13 @@ def clean_url(url):
     except:
         return url
 
-def get_mock_candidates(brand_name):
+def get_mock_candidates(brand_name: str) -> List[Dict[str, Any]]:
     """
     Datos de respaldo para demostración cuando se acaba la cuota de la API.
     """
     print(f"🛡️ Activando MOCK MODE para '{brand_name}' (Cuota excedida)...")
     
-    mocks = []
+    mocks: List[Dict[str, str]] = []
     brand = brand_name.lower()
     
     if "nike" in brand or "puma" in brand:
@@ -44,4 +45,3 @@ def get_mock_candidates(brand_name):
         "snippet": m["snippet"], 
         "source": "mock"
     } for m in mocks]
-

@@ -4,12 +4,13 @@ import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from collections import Counter
+from typing import List, Dict, Any, Optional, Set
 
 from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS, IGNORED_DOMAINS, IGNORED_SUBDOMAINS, IGNORED_TERMS, NEWS_TECH_DOMAINS
 from .gemini_service import get_competitors_from_gemini
 from .mocks import get_mock_candidates, clean_url
 
-def get_root_domain(url):
+def get_root_domain(url: str) -> str:
     """Extrae el dominio raíz (ej. us.puma.com -> puma.com)."""
     try:
         parsed = urlparse(url if url.startswith('http') else f'https://{url}')
@@ -20,13 +21,13 @@ def get_root_domain(url):
     except:
         return url
 
-def extract_keywords_from_text(text, top_n=5):
+def extract_keywords_from_text(text: str, top_n: int = 5) -> List[str]:
     if not text: return []
     words = re.findall(r'\w+', text.lower())
     meaningful = [w for w in words if w not in STOP_WORDS and len(w) > 2 and not w.isdigit()]
     return [w for w, c in Counter(meaningful).most_common(top_n)]
 
-def get_brand_context(user_input):
+def get_brand_context(user_input: str) -> Dict[str, Any]:
     """Obtiene contexto semántico del sitio de la marca."""
     context = {"name": user_input, "url": "", "keywords": []}
     print(f"🧠 Analizando contexto para: '{user_input}'...")
@@ -65,7 +66,7 @@ def get_brand_context(user_input):
 
     return context
 
-def search_google_api(query, num=5):
+def search_google_api(query: str, num: int = 5) -> Optional[List[Dict[str, str]]]:
     """Wrapper seguro para la API de Google."""
     api_key = os.environ.get("GOOGLE_API_KEY")
     cse_id = os.environ.get("GOOGLE_CSE_ID")
@@ -87,7 +88,7 @@ def search_google_api(query, num=5):
     except Exception:
         return None
 
-def extract_competitor_names(text, brand_name):
+def extract_competitor_names(text: str, brand_name: str) -> List[str]:
     """Extrae nombres de posibles competidores de textos (snippets)."""
     found = set()
     text_lower = text.lower()
@@ -104,7 +105,7 @@ def extract_competitor_names(text, brand_name):
         
     return list(found)
 
-def search_direct_competitor(name):
+def search_direct_competitor(name: str) -> Optional[Dict[str, str]]:
     """Busca el sitio oficial de un competidor específico."""
     # Mapeo de dominios conocidos
     known = {
@@ -123,7 +124,7 @@ def search_direct_competitor(name):
         return {"link": link, "clean_url": clean_url(link), "source": "direct_search", "title": res[0].get('title')}
     return None
 
-def classify_competitor(candidate, brand_context):
+def classify_competitor(candidate: Dict[str, Any], brand_context: Dict[str, Any]) -> Dict[str, Any]:
     """
     Clasifica un candidato en HDA, LDA o Ruido basándose en señales.
     """
@@ -174,7 +175,7 @@ def classify_competitor(candidate, brand_context):
         
     return {"valid": False, "reason": "Sin señales suficientes de competencia"}
 
-def run_compas_scan(user_input):
+def run_compas_scan(user_input: str) -> Dict[str, Any]:
     print(f"🚀 Iniciando CompasScan 2.0 (AI-First) para: {user_input}...\n")
     context = get_brand_context(user_input)
     
