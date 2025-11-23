@@ -1,56 +1,66 @@
-Reglas del Proyecto: CompasScan
+# Project Rules: CompasScan
 
-Actúa como un Vibe-Coder Senior (Python/Serverless/AI Expert). Este proyecto es una herramienta de inteligencia competitiva automatizada.
+Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an automated competitive intelligence tool.
 
-1. Stack Tecnológico & Infraestructura
+1. Tech Stack & Infrastructure
 
-Lenguaje: Python 3.9+ (Tipado estricto donde sea posible).
+Language: Python 3.9+ (Strict typing where possible).
 
-Gestor de Paquetes: Únicamente uv (uv pip install ...). Nunca uses pip directo.
+Package Manager: Use `uv` exclusively (`uv pip install ...`). Never use direct pip.
 
-Despliegue: Vercel Serverless Functions (api/index.py es el entrypoint).
+Deployment: Vercel Serverless Functions (`api/index.py` is the entrypoint).
 
-Base de Datos: Supabase (PostgreSQL). Usar siempre api/db.py para conexiones.
+Database: Supabase (PostgreSQL). Always use `api/db.py` for connections.
 
-Inteligencia Artificial (Cerebro): Google Gemini 2.0 Flash (vía google-generativeai). Es la fuente primaria de análisis.
+Artificial Intelligence (Brain): Google Gemini 2.0 Flash (via `google-generativeai`). It is the primary source of analysis.
 
-Búsqueda (Fallback): Google Custom Search JSON API (vía requests). ❌ PROHIBIDO usar librerías de scraping como googlesearch-python.
+Search (Fallback): Google Custom Search JSON API (via `requests`). ❌ SCRAPING LIBRARIES like `googlesearch-python` ARE FORBIDDEN.
 
-2. Arquitectura & Modularidad
+2. Gitflow & Version Control
 
-api/compas_core.py: Orquestador principal. Decide si usar IA o búsqueda tradicional.
-api/gemini_service.py: Módulo encapsulado para todas las interacciones con la IA.
-api/constants.py: TODAS las listas estáticas (STOP_WORDS, FAMOUS_DOMAINS, HEADERS) deben vivir aquí.
-test_local.py: Script de prueba principal. Debe soportar argumentos CLI y generar results.json localmente (ignorado por git).
+Workflow: Strict Gitflow.
+Working Branches: `feature/*`, `fix/*`, `hotfix/*`, `docs/*`.
+Integration:
+  - ❌ DIRECT MERGE to `develop` or `main` locally is FORBIDDEN.
+  - ✅ ALWAYS create a Pull Request (PR) to `develop` from the working branch.
+  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
 
-3. Lógica de Negocio (El "Cerebro")
+Commits: In English and Conventional Commits format (feat:, fix:, docs:).
 
-El objetivo es clasificar competidores en dos tipos usando un enfoque Híbrido (IA > Web):
+3. Architecture & Modularity
 
-Estrategia 1: Consultor Directo (Gemini) 🌟
-Prioridad Alta. Se consulta a la IA para identificar competidores directos y clasificarlos.
-Si la IA responde, sus resultados son la fuente de verdad.
+`api/compas_core.py`: Main orchestrator. Decides whether to use AI or traditional search.
+`api/gemini_service.py`: Encapsulated module for all AI interactions.
+`api/constants.py`: ALL static lists (`STOP_WORDS`, `FAMOUS_DOMAINS`, `HEADERS`) must live here.
+`test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
 
-Estrategia 2: Búsqueda por Señales (Fallback) 🔍
-Si la IA falla, se activa la búsqueda web mejorada.
-Extracción de Agregadores: Leer snippets de "Top 10..." para extraer nombres de competidores.
-Búsqueda Directa: Buscar activamente los sitios oficiales de los competidores descubiertos.
+4. Business Logic (The "Brain")
 
-Clasificación (HDA/LDA):
+The goal is to classify competitors into two types using a Hybrid approach (AI > Web):
 
-HDA (Alta Disponibilidad):
-Competidores globales o validados por IA como líderes.
-Factores: Dominio en FAMOUS_DOMAINS, identificado por IA como HDA, coincidencia de keywords fuerte.
+Strategy 1: Direct Consultant (Gemini) 🌟
+High Priority. AI is consulted to identify direct competitors and classify them.
+If AI responds, its results are the source of truth.
 
-LDA (Baja Disponibilidad):
-Competidores de nicho.
-Factores: Identificado por IA como LDA, coincidencia semántica en snippet.
+Strategy 2: Signal-Based Search (Fallback) 🔍
+If AI fails, enhanced web search is activated.
+Aggregator Extraction: Read snippets from "Top 10..." to extract competitor names.
+Direct Search: Actively search for official sites of discovered competitors.
 
-Filtros de Ruido:
-Excluir siempre: Sitios de noticias (CNET, Forbes), Foros (Reddit, Quora), Subdominios de la propia marca.
+Classification (HDA/LDA):
 
-4. Vibe-Coder Best Practices
-Transparencia: El JSON report debe incluir justification explicando por qué se seleccionó (ej. "Identificado por IA: Competidor directo").
-Clean Code: Sin código muerto ni prints de debug en producción.
-Config: Secretos siempre en os.environ.get().
-commits: En Inglés y formato Conventional Commits (feat:, fix:, docs:).
+HDA (High Domain Availability):
+Global competitors or AI-validated market leaders.
+Factors: Domain in `FAMOUS_DOMAINS`, identified by AI as HDA, strong keyword match.
+
+LDA (Low Domain Availability):
+Niche competitors.
+Factors: Identified by AI as LDA, semantic match in snippet.
+
+Noise Filters:
+Always exclude: News sites (CNET, Forbes), Forums (Reddit, Quora), Subdomains of the brand itself.
+
+5. Vibe-Coder Best Practices
+Transparency: The JSON report must include a `justification` explaining why it was selected (e.g., "Identified by AI: Direct competitor").
+Clean Code: No dead code or debug prints in production.
+Config: Secrets always in `os.environ.get()`.
