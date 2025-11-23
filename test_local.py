@@ -3,13 +3,20 @@ import sys
 import json
 from dotenv import load_dotenv
 
+# Carga las variables del archivo .env
 load_dotenv()
 
+# Importamos las funciones principales
 from api import db, compas_core
 
+# Verificación de entorno
 if not os.environ.get("SUPABASE_URL"):
     print("❌ ERROR: Faltan variables de entorno (SUPABASE_URL).")
 else:
+    # ----------------------------------------------------
+    # Lógica de Argumentos Dinámicos
+    # ----------------------------------------------------
+    # Si pasas un argumento, úsalo. Si no, usa "Hulu" por defecto.
     if len(sys.argv) > 1:
         brand_to_test = sys.argv[1]
     else:
@@ -19,13 +26,16 @@ else:
     print(f"\n🧪 Testeando el flujo de CompasScan para: {brand_to_test}")
     print("-" * 50)
 
+    # 1. Ejecutar la lógica de escaneo
     report = compas_core.run_compas_scan(brand_to_test)
     
+    # 2. Guardar el reporte en Supabase
     success = db.save_scan_results(brand_to_test, report)
 
     if success:
         print(f"\n✨ ÉXITO COMPLETO en Supabase.")
         
+        # 3. Generar el Artefacto Local (results.json)
         try:
             final_output = {
                 "status": "success",

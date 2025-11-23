@@ -1,0 +1,66 @@
+# Project Rules: CompasScan
+
+Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an automated competitive intelligence tool.
+
+1. Tech Stack & Infrastructure
+
+Language: Python 3.9+ (Strict typing where possible).
+
+Package Manager: Use `uv` exclusively (`uv pip install ...`). Never use direct pip.
+
+Deployment: Vercel Serverless Functions (`api/index.py` is the entrypoint).
+
+Database: Supabase (PostgreSQL). Always use `api/db.py` for connections.
+
+Artificial Intelligence (Brain): Google Gemini 2.0 Flash (via `google-generativeai`). It is the primary source of analysis.
+
+Search (Fallback): Google Custom Search JSON API (via `requests`). ❌ SCRAPING LIBRARIES like `googlesearch-python` ARE FORBIDDEN.
+
+2. Gitflow & Version Control
+
+Workflow: Strict Gitflow.
+Working Branches: `feature/*`, `fix/*`, `hotfix/*`, `docs/*`.
+Integration:
+  - ❌ DIRECT MERGE to `develop` or `main` locally is FORBIDDEN.
+  - ✅ ALWAYS create a Pull Request (PR) to `develop` from the working branch.
+  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
+
+Commits: In English and Conventional Commits format (feat:, fix:, docs:).
+
+3. Architecture & Modularity
+
+`api/compas_core.py`: Main orchestrator. Decides whether to use AI or traditional search.
+`api/gemini_service.py`: Encapsulated module for all AI interactions.
+`api/constants.py`: ALL static lists (`STOP_WORDS`, `FAMOUS_DOMAINS`, `HEADERS`) must live here.
+`test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
+
+4. Business Logic (The "Brain")
+
+The goal is to classify competitors into two types using a Hybrid approach (AI > Web):
+
+Strategy 1: Direct Consultant (Gemini) 🌟
+High Priority. AI is consulted to identify direct competitors and classify them.
+If AI responds, its results are the source of truth.
+
+Strategy 2: Signal-Based Search (Fallback) 🔍
+If AI fails, enhanced web search is activated.
+Aggregator Extraction: Read snippets from "Top 10..." to extract competitor names.
+Direct Search: Actively search for official sites of discovered competitors.
+
+Classification (HDA/LDA):
+
+HDA (High Domain Availability):
+Global competitors or AI-validated market leaders.
+Factors: Domain in `FAMOUS_DOMAINS`, identified by AI as HDA, strong keyword match.
+
+LDA (Low Domain Availability):
+Niche competitors.
+Factors: Identified by AI as LDA, semantic match in snippet.
+
+Noise Filters:
+Always exclude: News sites (CNET, Forbes), Forums (Reddit, Quora), Subdomains of the brand itself.
+
+5. Vibe-Coder Best Practices
+Transparency: The JSON report must include a `justification` explaining why it was selected (e.g., "Identified by AI: Direct competitor").
+Clean Code: No dead code or debug prints in production.
+Config: Secrets always in `os.environ.get()`.

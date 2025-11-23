@@ -5,7 +5,8 @@ from bs4 import BeautifulSoup
 import re
 from collections import Counter
 
-from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS
+from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS, IGNORED_DOMAINS, IGNORED_SUBDOMAINS
+from .gemini_service import get_competitors_from_gemini
 
 def clean_url(url):
     """Normaliza URLs para comparaciones."""
@@ -14,6 +15,17 @@ def clean_url(url):
             url = 'https://' + url
         parsed = urlparse(url)
         return f"{parsed.scheme}://{parsed.netloc}"
+    except:
+        return url
+
+def get_root_domain(url):
+    """Extrae el dominio raíz (ej. us.puma.com -> puma.com)."""
+    try:
+        parsed = urlparse(url if url.startswith('http') else f'https://{url}')
+        parts = parsed.netloc.split('.')
+        if len(parts) > 2:
+            return '.'.join(parts[-2:]) # Toma los últimos 2 (ej. puma.com)
+        return parsed.netloc
     except:
         return url
 
@@ -33,7 +45,7 @@ def extract_keywords_from_text(text, top_n=5):
 
 def get_brand_context(user_input):
     """
-    Obtiene el contexto semántico de la marca analizando su sitio web.
+    Obtiene el contexto semántico. Incluye fallback si el sitio tiene protección anti-bot (ej. Amazon).
     """
     context = {
         "name": user_input,
@@ -50,7 +62,6 @@ def get_brand_context(user_input):
         context["name"] = domain_part.capitalize()
         print(f"   -> Input detectado como URL. Dominio: {context['url']}")
     else:
-        # Búsqueda de sitio oficial usando API Google
         print("   -> Input detectado como Nombre. Buscando sitio oficial...")
         official_results = search_google_api(f"{user_input} official site", num=1)
         
@@ -58,37 +69,41 @@ def get_brand_context(user_input):
             context["url"] = clean_url(official_results[0]['link'])
             print(f"   -> Sitio oficial encontrado: {context['url']}")
         else:
-            print("⚠️ No se encontró sitio oficial en Google API.")
-            return context
+            print("⚠️ No se encontró sitio oficial en Google API. Intentando adivinar...")
+            context["url"] = f"https://www.{user_input.lower().replace(' ', '')}.com"
 
-    # B. Extracción de Keywords (Scraping del Home)
+    # B. Extracción de Keywords con Fallback
     try:
         if context["url"]:
-            response = requests.get(context["url"], headers=HEADERS, timeout=5)
+            # Timeout corto para no colgarse con sitios lentos/protegidos
+            response = requests.get(context["url"], headers=HEADERS, timeout=4)
+            
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                
                 page_title = soup.title.string if soup.title else ""
                 meta = soup.find('meta', attrs={'name': 'description'})
                 meta_desc = meta.get('content', '') if meta else ""
                 
                 full_text = f"{page_title} {meta_desc}"
-                
-                # Extraemos keywords y filtramos la propia marca
                 raw_keywords = extract_keywords_from_text(full_text, top_n=10)
-                brand_clean = context["name"].lower().replace(" ", "")
                 
-                final_keywords = [
-                    kw for kw in raw_keywords 
-                    if kw != brand_clean and brand_clean not in kw
-                ]
+                brand_clean = context["name"].lower().replace(" ", "")
+                final_keywords = [kw for kw in raw_keywords if kw != brand_clean and brand_clean not in kw]
                 
                 context["keywords"] = final_keywords[:5]
-                print(f"   -> Contexto extraído: {context['keywords']}")
             else:
                 print(f"⚠️ El sitio respondió con error {response.status_code}")
+
     except Exception as e:
         print(f"⚠️ Error analizando el sitio de la marca: {e}")
+
+    # --- FALLBACK DE EMERGENCIA (CRÍTICO PARA AMAZON/SPOTIFY) ---
+    if not context["keywords"]:
+        print("⚠️ Contexto vacío (Sitio protegido o sin texto). Aplicando Fallback Neutro.")
+        # Usamos términos genéricos que funcionan para SaaS, Apps y Servicios
+        context["keywords"] = ["service", "platform", "app", "software", "online"]
+    else:
+        print(f"   -> Contexto extraído: {context['keywords']}")
 
     return context
 
@@ -161,98 +176,130 @@ def get_mock_candidates(brand_name):
     # Formatear para el pipeline
     return [{"clean_url": clean_url(m["link"]), "link": m["link"], "title": m["title"], "snippet": m["snippet"], "source": "mock"} for m in mocks]
 
-def find_candidates_on_google(brand_name, brand_url):
+def find_candidates_on_google(brand_name, context):
+    """
+    Busca competidores usando estrategias semánticas y técnicas.
+    Ahora usa las keywords del contexto para filtrar desde la búsqueda.
+    """
     candidates = []
     seen_urls = set()
-    api_failed = False
     
-    # 1. Intentar búsqueda real
     queries = []
-    if brand_url:
-        domain = urlparse(brand_url).netloc
-        queries.append(f"related:{domain}")
-    queries.append(f"top alternatives to {brand_name}")
+    
+    # 1. Estrategia Técnica (Related) - La más limpia
+    if context.get("url"):
+        root_domain = get_root_domain(context["url"])
+        queries.append(f"related:{root_domain}")
+        print(f"   -> Usando Root Domain para related: {root_domain}")
+    
+    # 2. Estrategia Semántica (Keywords)
+    # Usamos las top 2 keywords para tener variedad
+    keywords = context["keywords"][:2] if context["keywords"] else ["competitors"]
+    
+    # Queries Directas (Alta probabilidad de HDA)
+    queries.append(f"similar brands to {brand_name}")
+    queries.append(f"{brand_name} competitors")
 
+    for kw in keywords:
+        # Patrón 1: Comparativa directa
+        queries.append(f"{kw} brands like {brand_name}")
+        
+        # Patrón 2: Alternativas específicas
+        queries.append(f"alternatives to {brand_name} for {kw}")
+        
+        # Patrón 3: Líderes de categoría (sin mencionar la marca, para encontrar a los grandes)
+        queries.append(f"best {kw} brands")
+
+    # Eliminamos duplicados preservando orden
+    queries = list(dict.fromkeys(queries))
+
+    print(f"🔎 Buscando con contexto: {queries}...")
+    
     for q in queries:
-        if api_failed: break # Si ya falló una vez, no sigas intentando
+        # Pedimos 10 (Límite máximo de la API por request)
+        items = search_google_api(q, num=10)
         
-        items = search_google_api(q, num=5) # Bajamos a 5 para ahorrar si revive
-        
-        if items is None: # Detectamos fallo de cuota
-            api_failed = True
-            break
-            
+        if not items: continue
+
         for item in items:
-            clean = clean_url(item['link'])
+            raw_link = item.get('link')
+            if not raw_link: continue
+            
+            # DEBUG: Ver qué está llegando
+            # print(f"   RAW: {raw_link}")
+                
+            clean = clean_url(raw_link)
+            
+            # Filtros de auto-referencia
             if brand_name.lower() in clean.lower(): continue
+            if context.get("url") and context["url"] in clean: continue
+            
             if clean not in seen_urls:
                 seen_urls.add(clean)
                 item['clean_url'] = clean
-                item['source'] = 'api'
+                item['source'] = 'related' if 'related:' in q else 'text'
                 candidates.append(item)
-    
-    # 2. Si la API falló o no trajo nada, usar Mock Data
-    if api_failed or not candidates:
-        candidates = get_mock_candidates(brand_name)
             
     return candidates
 
 def analyze_competitor(candidate, brand_context):
     """
-    Sistema de Puntuación (Scoring) para clasificar HDA/LDA y filtrar Agregadores.
+    Clasifica usando Scoring y detecta Blogs por URL y Título.
     """
-    url = candidate['clean_url']
+    clean_link = candidate['clean_url']
+    full_link = candidate.get('link', '').lower() # Necesario para detectar /blog/
     title = candidate.get('title', '').lower()
     snippet = candidate.get('snippet', '').lower()
-    domain = urlparse(url).netloc.lower()
+    domain = urlparse(clean_link).netloc.lower()
 
     # 1. Filtro de Ruido Básico
-    ignored = ["wikipedia", "youtube", "facebook", "instagram", "linkedin", "pinterest", "quora", "reddit"]
-    for ig in ignored:
+    # 1. Filtro de Ruido Básico (Dominios y Subdominios)
+    # A. Dominios Ignorados
+    for ig in IGNORED_DOMAINS:
         if ig in domain:
             return {"is_valid": False, "reason": f"Ruido: Dominio ignorado ({ig})."}
 
-    # 2. DETECCIÓN DE AGREGADORES (Anti-Listicle)
-    aggregator_signals = ["top ", "best ", " alternatives", " vs ", "competitors", "reviews", "list of", "guide"]
-    is_aggregator = any(sig in title for sig in aggregator_signals)
+    # B. Subdominios Ignorados (App Stores)
+    # Verificamos si el clean_link empieza con alguno de los subdominios ignorados
+    # o si el dominio exacto está en la lista.
+    clean_no_proto = clean_link.replace("https://", "").replace("http://", "")
+    if any(clean_no_proto.startswith(sub) for sub in IGNORED_SUBDOMAINS):
+         return {"is_valid": False, "reason": f"Ruido: Subdominio ignorado ({clean_no_proto})."}
+
+    # 2. DETECCIÓN DE BLOGS Y AGREGADORES
+    
+    # A. Por URL (Recuperado)
+    if "/blog/" in full_link or "/news/" in full_link or "/article/" in full_link:
+        return {"is_valid": False, "reason": "Descartado: Es un artículo de blog, no una home."}
+
+    # B. Por Título (Listicles)
+    aggregator_signals = ["top 10", "top 5", "best alternatives", " list ", " guide to"]
+    if any(sig in title for sig in aggregator_signals):
+        return {"is_valid": False, "reason": "Descartado: Es un listicle/agregador."}
 
     # 3. SCORING
     score = 0
     reasons = []
 
-    # A. Fama (Peso Crítico para HDA)
+    # A. Fama
     if any(f in domain for f in FAMOUS_DOMAINS):
         score += 50
         reasons.append("Gigante Digital")
-    
-    # B. Origen 'related:' (Indicador técnico fuerte)
-    if candidate.get('source') == 'related':
-        score += 30
-        reasons.append("Relación técnica directa")
 
-    # C. Coincidencia de Keywords (Contexto)
+    # B. Coincidencia de Keywords
     matches = [kw for kw in brand_context["keywords"] if kw in title or kw in snippet]
     if matches:
-        points = len(matches) * 10
-        score += points
+        score += len(matches) * 15 # Subimos peso a 15
         reasons.append(f"Contexto ({len(matches)} kws)")
-
-    # D. Penalización por Agregador (El filtro clave para tu problema)
-    if is_aggregator:
-        score -= 40
-        reasons.append("Penalización por formato de Blog/Lista")
 
     # --- CLASIFICACIÓN ---
     
-    # Umbral HDA: 45 Puntos
     if score >= 45:
         return {
             "is_valid": True,
             "classification": "HDA",
             "justification": f"Alta relevancia (Score {score}). {'. '.join(reasons)}."
         }
-    
-    # Umbral LDA: Score positivo
     elif score > 0:
         return {
             "is_valid": True,
@@ -260,33 +307,62 @@ def analyze_competitor(candidate, brand_context):
             "justification": f"Sitio relevante (Score {score}). {'. '.join(reasons)}."
         }
         
-    return {"is_valid": False, "reason": f"Baja relevancia (Score {score}). Posible agregador o sin contexto."}
+    return {"is_valid": False, "reason": f"Baja relevancia (Score {score})."}
 
 def run_compas_scan(user_input):
-    print(f"🚀 Iniciando CompasScan (Scoring V2) para: {user_input}...\n")
+    print(f"🚀 Iniciando CompasScan (Smart Search + Gemini) para: {user_input}...\n")
     
     context = get_brand_context(user_input)
     brand_name = context["name"] if context["name"] else user_input
     
-    raw_candidates = find_candidates_on_google(brand_name, context["url"])
-    
-    if not raw_candidates:
-        return {"target": brand_name, "HDA_Competitors": [], "LDA_Competitors": [], "Note": "Sin resultados."}
-
     final_report = {
         "HDA_Competitors": [],
         "LDA_Competitors": [],
         "Discarded_Candidates": []
     }
 
-    print(f"🔍 Clasificando {len(raw_candidates)} candidatos...")
+    # --- ESTRATEGIA 1: GEMINI (Consultor Directo) ---
+    # Intentamos obtener la lista limpia directamente de la IA
+    gemini_candidates = get_competitors_from_gemini(brand_name)
+    
+    if gemini_candidates:
+        print(f"✨ Usando resultados de Gemini como fuente principal.")
+        for cand in gemini_candidates:
+            classification = cand.get("gemini_type", "LDA")
+            entry = {
+                "name": cand.get("title").split(" - ")[0],
+                "url": cand.get("clean_url"),
+                "justification": f"Identificado por IA: {cand.get('snippet')}"
+            }
+            
+            if classification == "HDA":
+                final_report["HDA_Competitors"].append(entry)
+            else:
+                final_report["LDA_Competitors"].append(entry)
+                
+        # Si Gemini funcionó, retornamos directamente (evitamos ruido de Google Search)
+        return final_report
+
+    # --- ESTRATEGIA 2: GOOGLE SEARCH (Fallback) ---
+    print("⚠️ Gemini no devolvió resultados o no está configurado. Usando búsqueda tradicional...")
+    
+    # AHORA PASAMOS EL CONTEXTO A LA BÚSQUEDA
+    raw_candidates = find_candidates_on_google(brand_name, context)
+    
+    if not raw_candidates:
+        return {"target": brand_name, "HDA_Competitors": [], "LDA_Competitors": [], "Note": "Sin resultados."}
+
+    print(f"🔍 Clasificando {len(raw_candidates)} candidatos (Método Clásico)...")
 
     for candidate in raw_candidates:
         analysis = analyze_competitor(candidate, context)
         
+        # Extraer nombre limpio del dominio
+        domain_clean = urlparse(candidate['clean_url']).netloc.replace("www.", "").split('.')[0].capitalize()
+
         entry = {
+            "name": domain_clean,
             "url": candidate['clean_url'],
-            "title": candidate.get('title', '')[:60] + "...",
             "justification": analysis.get("justification", "")
         }
 
@@ -301,7 +377,6 @@ def run_compas_scan(user_input):
                 "reason": analysis.get("reason", "Descarte")
             })
 
-    # Recorte de límites
     final_report["HDA_Competitors"] = final_report["HDA_Competitors"][:5]
     final_report["LDA_Competitors"] = final_report["LDA_Competitors"][:3]
     final_report["Discarded_Candidates"] = final_report["Discarded_Candidates"][:5]
