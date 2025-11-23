@@ -1,22 +1,13 @@
 import os
 import requests
+import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
-import re
 from collections import Counter
 
-from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS, IGNORED_DOMAINS, IGNORED_SUBDOMAINS
+from .constants import HEADERS, STOP_WORDS, FAMOUS_DOMAINS, IGNORED_DOMAINS, IGNORED_SUBDOMAINS, IGNORED_TERMS, NEWS_TECH_DOMAINS
 from .gemini_service import get_competitors_from_gemini
-
-def clean_url(url):
-    """Normaliza URLs para comparaciones."""
-    try:
-        if not url.startswith('http'):
-            url = 'https://' + url
-        parsed = urlparse(url)
-        return f"{parsed.scheme}://{parsed.netloc}"
-    except:
-        return url
+from .mocks import get_mock_candidates, clean_url
 
 def get_root_domain(url):
     """Extrae el dominio raíz (ej. us.puma.com -> puma.com)."""
@@ -24,361 +15,236 @@ def get_root_domain(url):
         parsed = urlparse(url if url.startswith('http') else f'https://{url}')
         parts = parsed.netloc.split('.')
         if len(parts) > 2:
-            return '.'.join(parts[-2:]) # Toma los últimos 2 (ej. puma.com)
+            return '.'.join(parts[-2:])
         return parsed.netloc
     except:
         return url
 
 def extract_keywords_from_text(text, top_n=5):
-    """Extrae las palabras clave más relevantes de un texto."""
     if not text: return []
-    
     words = re.findall(r'\w+', text.lower())
-    
-    meaningful_words = [
-        w for w in words 
-        if w not in STOP_WORDS and len(w) > 2 and not w.isdigit()
-    ]
-    
-    counter = Counter(meaningful_words)
-    return [word for word, count in counter.most_common(top_n)]
+    meaningful = [w for w in words if w not in STOP_WORDS and len(w) > 2 and not w.isdigit()]
+    return [w for w, c in Counter(meaningful).most_common(top_n)]
 
 def get_brand_context(user_input):
-    """
-    Obtiene el contexto semántico. Incluye fallback si el sitio tiene protección anti-bot (ej. Amazon).
-    """
-    context = {
-        "name": user_input,
-        "url": "",
-        "keywords": []
-    }
-
+    """Obtiene contexto semántico del sitio de la marca."""
+    context = {"name": user_input, "url": "", "keywords": []}
     print(f"🧠 Analizando contexto para: '{user_input}'...")
 
-    # A. Detección de URL vs Nombre
+    # 1. Detectar URL o Nombre
     if "." in user_input and " " not in user_input:
         context["url"] = clean_url(user_input)
-        domain_part = urlparse(context["url"]).netloc.replace("www.", "").split('.')[0]
-        context["name"] = domain_part.capitalize()
-        print(f"   -> Input detectado como URL. Dominio: {context['url']}")
+        context["name"] = urlparse(context["url"]).netloc.replace("www.", "").split('.')[0].capitalize()
     else:
-        print("   -> Input detectado como Nombre. Buscando sitio oficial...")
-        official_results = search_google_api(f"{user_input} official site", num=1)
-        
-        if official_results:
-            context["url"] = clean_url(official_results[0]['link'])
-            print(f"   -> Sitio oficial encontrado: {context['url']}")
+        # Búsqueda rápida del sitio oficial
+        res = search_google_api(f"{user_input} official site", num=1)
+        if res:
+            context["url"] = clean_url(res[0]['link'])
         else:
-            print("⚠️ No se encontró sitio oficial en Google API. Intentando adivinar...")
             context["url"] = f"https://www.{user_input.lower().replace(' ', '')}.com"
 
-    # B. Extracción de Keywords con Fallback
+    # 2. Extraer Keywords
     try:
         if context["url"]:
-            # Timeout corto para no colgarse con sitios lentos/protegidos
-            response = requests.get(context["url"], headers=HEADERS, timeout=4)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                page_title = soup.title.string if soup.title else ""
-                meta = soup.find('meta', attrs={'name': 'description'})
-                meta_desc = meta.get('content', '') if meta else ""
+            resp = requests.get(context["url"], headers=HEADERS, timeout=4)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                text = f"{soup.title.string if soup.title else ''} {soup.find('meta', attrs={'name': 'description'}) or ''}"
                 
-                full_text = f"{page_title} {meta_desc}"
-                raw_keywords = extract_keywords_from_text(full_text, top_n=10)
+                raw_kws = extract_keywords_from_text(text, top_n=10)
+                brand_clean = context["name"].lower()
                 
-                brand_clean = context["name"].lower().replace(" ", "")
-                final_keywords = [kw for kw in raw_keywords if kw != brand_clean and brand_clean not in kw]
-                
-                context["keywords"] = final_keywords[:5]
-            else:
-                print(f"⚠️ El sitio respondió con error {response.status_code}")
-
+                # Filtrar la propia marca y dominios famosos (evitar que 'disney' sea keyword)
+                context["keywords"] = [
+                    kw for kw in raw_kws 
+                    if kw != brand_clean and brand_clean not in kw and kw not in FAMOUS_DOMAINS
+                ][:5]
     except Exception as e:
-        print(f"⚠️ Error analizando el sitio de la marca: {e}")
-
-    # --- FALLBACK DE EMERGENCIA (CRÍTICO PARA AMAZON/SPOTIFY) ---
-    if not context["keywords"]:
-        print("⚠️ Contexto vacío (Sitio protegido o sin texto). Aplicando Fallback Neutro.")
-        # Usamos términos genéricos que funcionan para SaaS, Apps y Servicios
-        context["keywords"] = ["service", "platform", "app", "software", "online"]
-    else:
-        print(f"   -> Contexto extraído: {context['keywords']}")
+        print(f"⚠️ Error en contexto: {e}")
+        context["keywords"] = ["service", "platform", "app", "online"]
 
     return context
 
 def search_google_api(query, num=5):
-    """
-    Realiza búsqueda con manejo de errores de cuota.
-    Retorna None si hay error crítico para activar fallback.
-    """
+    """Wrapper seguro para la API de Google."""
     api_key = os.environ.get("GOOGLE_API_KEY")
     cse_id = os.environ.get("GOOGLE_CSE_ID")
     
-    if not api_key or not cse_id:
-        return None
-
-    url = "https://www.googleapis.com/customsearch/v1"
-    params = {'key': api_key, 'cx': cse_id, 'q': query, 'num': num}
+    if not api_key or not cse_id: return None
 
     try:
-        response = requests.get(url, params=params)
-        data = response.json()
+        resp = requests.get(
+            "https://www.googleapis.com/customsearch/v1", 
+            params={'key': api_key, 'cx': cse_id, 'q': query, 'num': num}
+        )
+        data = resp.json()
         
         if "error" in data:
-            # Loguear el error pero no romper el programa inmediatamente
             print(f"⚠️ Google API Error: {data['error']['message']}")
-            return None # Señal para activar Mock Mode
+            return None
             
-        results = []
-        if "items" in data:
-            for item in data["items"]:
-                results.append({
-                    "link": item.get("link"),
-                    "title": item.get("title", ""),
-                    "snippet": item.get("snippet", "")
-                })
-        return results
-
-    except Exception as e:
-        print(f"⚠️ Excepción de conexión: {e}")
+        return data.get("items", [])
+    except Exception:
         return None
 
-def get_mock_candidates(brand_name):
-    """
-    Datos de respaldo para demostración cuando se acaba la cuota de la API.
-    """
-    print(f"🛡️ Activando MOCK MODE para '{brand_name}' (Cuota excedida)...")
+def extract_competitor_names(text, brand_name):
+    """Extrae nombres de posibles competidores de textos (snippets)."""
+    found = set()
+    text_lower = text.lower()
     
-    mocks = []
-    brand = brand_name.lower()
-    
-    # Datos simulados basados en la marca input
-    if "nike" in brand or "puma" in brand:
-        mocks = [
-            {"link": "https://www.adidas.com", "title": "Adidas Official Website | Sports & Originals", "snippet": "Shop for adidas shoes, clothing and view new collections for adidas Originals, running, football, soccer, training and more."},
-            {"link": "https://www.reebok.com", "title": "Reebok US | Reebok Official Website", "snippet": "Shop for Reebok shoes, clothing and accessories. Classic style and sport performance."},
-            {"link": "https://www.underarmour.com", "title": "Under Armour® Official Store | FREE Shipping available", "snippet": "Under Armour makes game-changing sports apparel, athletic shirts, shoes & accessories."}
-        ]
-    elif "asana" in brand or "trello" in brand:
-        mocks = [
-            {"link": "https://www.monday.com", "title": "monday.com | A new way of working", "snippet": "monday.com is a Work OS that powers teams to run processes, projects and everyday work their way."},
-            {"link": "https://www.clickup.com", "title": "ClickUp™ | One app to replace them all", "snippet": "Save time with the all-in-one productivity platform that brings teams, tasks, and tools together in one place."},
-            {"link": "https://www.jira.com", "title": "Jira | Issue & Project Tracking Software", "snippet": "Jira is the #1 software development tool used by agile teams."}
-        ]
-    else:
-        # Genérico
-        mocks = [
-            {"link": "https://www.competitor-example.com", "title": f"Top Alternative to {brand_name}", "snippet": f"The best alternative to {brand_name} for your business."},
-            {"link": "https://www.niche-player.io", "title": "Niche Solution for Professionals", "snippet": "A specialized tool that offers similar features with better pricing."}
-        ]
-    
-    # Formatear para el pipeline
-    return [{"clean_url": clean_url(m["link"]), "link": m["link"], "title": m["title"], "snippet": m["snippet"], "source": "mock"} for m in mocks]
-
-def find_candidates_on_google(brand_name, context):
-    """
-    Busca competidores usando estrategias semánticas y técnicas.
-    Ahora usa las keywords del contexto para filtrar desde la búsqueda.
-    """
-    candidates = []
-    seen_urls = set()
-    
-    queries = []
-    
-    # 1. Estrategia Técnica (Related) - La más limpia
-    if context.get("url"):
-        root_domain = get_root_domain(context["url"])
-        queries.append(f"related:{root_domain}")
-        print(f"   -> Usando Root Domain para related: {root_domain}")
-    
-    # 2. Estrategia Semántica (Keywords)
-    # Usamos las top 2 keywords para tener variedad
-    keywords = context["keywords"][:2] if context["keywords"] else ["competitors"]
-    
-    # Queries Directas (Alta probabilidad de HDA)
-    queries.append(f"similar brands to {brand_name}")
-    queries.append(f"{brand_name} competitors")
-
-    for kw in keywords:
-        # Patrón 1: Comparativa directa
-        queries.append(f"{kw} brands like {brand_name}")
+    # 1. Buscar dominios famosos conocidos
+    for domain in FAMOUS_DOMAINS:
+        if domain in text_lower and domain not in brand_name.lower():
+            found.add(domain)
+            
+    # 2. Patrones simples después de "vs" o "like"
+    for kw in ["vs", "like", "similar to"]:
+        matches = re.findall(rf'{kw}\s+([A-Z][a-zA-Z]+)', text)
+        found.update([m.lower() for m in matches if len(m) > 3])
         
-        # Patrón 2: Alternativas específicas
-        queries.append(f"alternatives to {brand_name} for {kw}")
-        
-        # Patrón 3: Líderes de categoría (sin mencionar la marca, para encontrar a los grandes)
-        queries.append(f"best {kw} brands")
+    return list(found)
 
-    # Eliminamos duplicados preservando orden
-    queries = list(dict.fromkeys(queries))
-
-    print(f"🔎 Buscando con contexto: {queries}...")
+def search_direct_competitor(name):
+    """Busca el sitio oficial de un competidor específico."""
+    # Mapeo de dominios conocidos
+    known = {
+        'fubo': 'fubo.tv', 'paramount': 'paramount.com', 'sling': 'sling.com',
+        'hbo': 'hbomax.com', 'peacock': 'peacocktv.com', 'disney': 'disneyplus.com'
+    }
     
-    for q in queries:
-        # Pedimos 10 (Límite máximo de la API por request)
-        items = search_google_api(q, num=10)
-        
-        if not items: continue
+    if name in known:
+        url = f"https://www.{known[name]}"
+        return {"link": url, "clean_url": url, "source": "direct_search", "title": f"{name} Official"}
 
-        for item in items:
-            raw_link = item.get('link')
-            if not raw_link: continue
-            
-            # DEBUG: Ver qué está llegando
-            # print(f"   RAW: {raw_link}")
-                
-            clean = clean_url(raw_link)
-            
-            # Filtros de auto-referencia
-            if brand_name.lower() in clean.lower(): continue
-            if context.get("url") and context["url"] in clean: continue
-            
-            if clean not in seen_urls:
-                seen_urls.add(clean)
-                item['clean_url'] = clean
-                item['source'] = 'related' if 'related:' in q else 'text'
-                candidates.append(item)
-            
-    return candidates
+    # Búsqueda genérica
+    res = search_google_api(f"{name} official site", num=1)
+    if res:
+        link = res[0].get('link')
+        return {"link": link, "clean_url": clean_url(link), "source": "direct_search", "title": res[0].get('title')}
+    return None
 
-def analyze_competitor(candidate, brand_context):
+def classify_competitor(candidate, brand_context):
     """
-    Clasifica usando Scoring y detecta Blogs por URL y Título.
+    Clasifica un candidato en HDA, LDA o Ruido basándose en señales.
     """
-    clean_link = candidate['clean_url']
-    full_link = candidate.get('link', '').lower() # Necesario para detectar /blog/
-    title = candidate.get('title', '').lower()
-    snippet = candidate.get('snippet', '').lower()
-    domain = urlparse(clean_link).netloc.lower()
-
-    # 1. Filtro de Ruido Básico
-    # 1. Filtro de Ruido Básico (Dominios y Subdominios)
-    # A. Dominios Ignorados
-    for ig in IGNORED_DOMAINS:
-        if ig in domain:
-            return {"is_valid": False, "reason": f"Ruido: Dominio ignorado ({ig})."}
-
-    # B. Subdominios Ignorados (App Stores)
-    # Verificamos si el clean_link empieza con alguno de los subdominios ignorados
-    # o si el dominio exacto está en la lista.
-    clean_no_proto = clean_link.replace("https://", "").replace("http://", "")
-    if any(clean_no_proto.startswith(sub) for sub in IGNORED_SUBDOMAINS):
-         return {"is_valid": False, "reason": f"Ruido: Subdominio ignorado ({clean_no_proto})."}
-
-    # 2. DETECCIÓN DE BLOGS Y AGREGADORES
+    url = candidate['clean_url']
+    domain = urlparse(url).netloc.lower()
+    snippet = f"{candidate.get('title', '')} {candidate.get('snippet', '')}".lower()
     
-    # A. Por URL (Recuperado)
-    if "/blog/" in full_link or "/news/" in full_link or "/article/" in full_link:
-        return {"is_valid": False, "reason": "Descartado: Es un artículo de blog, no una home."}
+    # --- FASE 1: DESCARTE RÁPIDO ---
+    if any(ig in domain for ig in IGNORED_DOMAINS): return {"valid": False, "reason": "Dominio ignorado"}
+    if any(s in url for s in IGNORED_SUBDOMAINS): return {"valid": False, "reason": "Subdominio app/store"}
+    if any(t in url for t in IGNORED_TERMS): return {"valid": False, "reason": "Sitio de soporte"}
+    
+    domain_base = domain.replace("www.", "").split('.')[0]
+    if domain_base in NEWS_TECH_DOMAINS: return {"valid": False, "reason": "Sitio de noticias"}
 
-    # B. Por Título (Listicles)
-    aggregator_signals = ["top 10", "top 5", "best alternatives", " list ", " guide to"]
-    if any(sig in title for sig in aggregator_signals):
-        return {"is_valid": False, "reason": "Descartado: Es un listicle/agregador."}
+    # --- FASE 2: ANÁLISIS DE SEÑALES ---
+    signals = []
+    is_hda = False
+    
+    # Señal: Origen directo (muy fuerte)
+    if candidate.get('source') == 'direct_search':
+        is_hda = True
+        signals.append("Descubierto por búsqueda directa")
 
-    # 3. SCORING
-    score = 0
-    reasons = []
-
-    # A. Fama
+    # Señal: Gigante Digital
     if any(f in domain for f in FAMOUS_DOMAINS):
-        score += 50
-        reasons.append("Gigante Digital")
+        is_hda = True
+        signals.append("Gigante Digital")
 
-    # B. Coincidencia de Keywords
-    matches = [kw for kw in brand_context["keywords"] if kw in title or kw in snippet]
-    if matches:
-        score += len(matches) * 15 # Subimos peso a 15
-        reasons.append(f"Contexto ({len(matches)} kws)")
-
-    # --- CLASIFICACIÓN ---
+    # Señal: Términos de Industria + Dominio Limpio
+    industry_terms = ["streaming", "video", "subscription", "movies", "tv", "watch"]
+    has_industry = any(t in snippet for t in industry_terms)
+    is_clean_domain = len(get_root_domain(url).split('.')) == 2
     
-    if score >= 45:
-        return {
-            "is_valid": True,
-            "classification": "HDA",
-            "justification": f"Alta relevancia (Score {score}). {'. '.join(reasons)}."
-        }
-    elif score > 0:
-        return {
-            "is_valid": True,
-            "classification": "LDA",
-            "justification": f"Sitio relevante (Score {score}). {'. '.join(reasons)}."
-        }
+    if is_clean_domain and has_industry:
+        signals.append("Dominio oficial con términos de industria")
+        # Si tiene muchas coincidencias de keywords, puede ser HDA
+        kws_match = [k for k in brand_context["keywords"] if k in snippet]
+        if len(kws_match) >= 2:
+            is_hda = True
+            signals.append(f"Alta relevancia semántica ({len(kws_match)} kws)")
+
+    # --- FASE 3: RESULTADO ---
+    if is_hda:
+        return {"valid": True, "type": "HDA", "justification": f"Competidor Directo. {', '.join(signals)}"}
+    elif signals:
+        return {"valid": True, "type": "LDA", "justification": f"Competidor de Nicho. {', '.join(signals)}"}
         
-    return {"is_valid": False, "reason": f"Baja relevancia (Score {score})."}
+    return {"valid": False, "reason": "Sin señales suficientes de competencia"}
 
 def run_compas_scan(user_input):
-    print(f"🚀 Iniciando CompasScan (Smart Search + Gemini) para: {user_input}...\n")
-    
+    print(f"🚀 Iniciando CompasScan 2.0 (AI-First) para: {user_input}...\n")
     context = get_brand_context(user_input)
-    brand_name = context["name"] if context["name"] else user_input
     
-    final_report = {
-        "HDA_Competitors": [],
-        "LDA_Competitors": [],
-        "Discarded_Candidates": []
-    }
+    report = {"HDA_Competitors": [], "LDA_Competitors": [], "Discarded_Candidates": []}
 
-    # --- ESTRATEGIA 1: GEMINI (Consultor Directo) ---
-    # Intentamos obtener la lista limpia directamente de la IA
-    gemini_candidates = get_competitors_from_gemini(brand_name)
+    # 1. ESTRATEGIA IA (Gemini)
+    ai_candidates = get_competitors_from_gemini(context["name"])
+    if ai_candidates:
+        print("✨ Usando resultados de Gemini.")
+        for cand in ai_candidates:
+            c_type = cand.get("gemini_type", "LDA")
+            entry = {"name": cand["title"], "url": cand["clean_url"], "justification": cand["snippet"]}
+            report[f"{c_type}_Competitors"].append(entry)
+        return report
+
+    # 2. ESTRATEGIA WEB (Fallback)
+    print("⚠️ Fallback a Búsqueda Web (Señales)...")
+    queries = [
+        f"related:{get_root_domain(context['url'])}",
+        f"similar brands to {context['name']}",
+        f"{context['name']} competitors",
+        f"streaming services like {context['name']}" # Query dinámica idealmente
+    ]
     
-    if gemini_candidates:
-        print(f"✨ Usando resultados de Gemini como fuente principal.")
-        for cand in gemini_candidates:
-            classification = cand.get("gemini_type", "LDA")
-            entry = {
-                "name": cand.get("title").split(" - ")[0],
-                "url": cand.get("clean_url"),
-                "justification": f"Identificado por IA: {cand.get('snippet')}"
-            }
+    raw_candidates = []
+    seen = set()
+    discovered_names = set()
+
+    # A. Búsqueda Inicial
+    for q in queries:
+        items = search_google_api(q, num=10) or []
+        for item in items:
+            # Extraer nombres de agregadores para búsqueda directa
+            full_text = f"{item.get('title')} {item.get('snippet')}"
+            extracted = extract_competitor_names(full_text, context["name"])
+            discovered_names.update(extracted)
             
-            if classification == "HDA":
-                final_report["HDA_Competitors"].append(entry)
-            else:
-                final_report["LDA_Competitors"].append(entry)
-                
-        # Si Gemini funcionó, retornamos directamente (evitamos ruido de Google Search)
-        return final_report
+            link = clean_url(item.get('link'))
+            if link not in seen:
+                seen.add(link)
+                item["clean_url"] = link
+                item["source"] = "search"
+                raw_candidates.append(item)
 
-    # --- ESTRATEGIA 2: GOOGLE SEARCH (Fallback) ---
-    print("⚠️ Gemini no devolvió resultados o no está configurado. Usando búsqueda tradicional...")
-    
-    # AHORA PASAMOS EL CONTEXTO A LA BÚSQUEDA
-    raw_candidates = find_candidates_on_google(brand_name, context)
-    
-    if not raw_candidates:
-        return {"target": brand_name, "HDA_Competitors": [], "LDA_Competitors": [], "Note": "Sin resultados."}
+    # B. Búsqueda Directa de Nombres Descubiertos
+    if discovered_names:
+        print(f"🔍 Investigando nombres descubiertos: {list(discovered_names)[:5]}...")
+        for name in list(discovered_names)[:5]: # Limitado para no quemar API
+            direct = search_direct_competitor(name)
+            if direct and direct["clean_url"] not in seen:
+                seen.add(direct["clean_url"])
+                raw_candidates.append(direct)
 
-    print(f"🔍 Clasificando {len(raw_candidates)} candidatos (Método Clásico)...")
-
-    for candidate in raw_candidates:
-        analysis = analyze_competitor(candidate, context)
-        
-        # Extraer nombre limpio del dominio
-        domain_clean = urlparse(candidate['clean_url']).netloc.replace("www.", "").split('.')[0].capitalize()
-
+    # C. Clasificación
+    for cand in raw_candidates:
+        res = classify_competitor(cand, context)
         entry = {
-            "name": domain_clean,
-            "url": candidate['clean_url'],
-            "justification": analysis.get("justification", "")
+            "name": urlparse(cand['clean_url']).netloc,
+            "url": cand['clean_url'],
+            "justification": res.get("justification", "")
         }
-
-        if analysis["is_valid"]:
-            if analysis["classification"] == "HDA":
-                final_report["HDA_Competitors"].append(entry)
-            else:
-                final_report["LDA_Competitors"].append(entry)
+        
+        if res["valid"]:
+            report[f"{res['type']}_Competitors"].append(entry)
         else:
-            final_report["Discarded_Candidates"].append({
-                "url": candidate['clean_url'],
-                "reason": analysis.get("reason", "Descarte")
-            })
+            report["Discarded_Candidates"].append({"url": cand['clean_url'], "reason": res.get("reason")})
 
-    final_report["HDA_Competitors"] = final_report["HDA_Competitors"][:5]
-    final_report["LDA_Competitors"] = final_report["LDA_Competitors"][:3]
-    final_report["Discarded_Candidates"] = final_report["Discarded_Candidates"][:5]
+    # Limitar resultados
+    report["HDA_Competitors"] = report["HDA_Competitors"][:5]
+    report["LDA_Competitors"] = report["LDA_Competitors"][:5]
+    report["Discarded_Candidates"] = report["Discarded_Candidates"][:5]
 
-    return final_report
+    return report
