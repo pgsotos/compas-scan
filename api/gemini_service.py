@@ -1,14 +1,15 @@
 import os
 import json
-import google.generativeai as genai
+import google.generativeai as genai # type: ignore
 from urllib.parse import urlparse
+from typing import List, Dict, Any
 
 # Configurar la API key al importar el módulo
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
 
-def get_competitors_from_gemini(brand_name):
+def get_competitors_from_gemini(brand_name: str) -> List[Dict[str, Any]]:
     """
     Consulta a Gemini para obtener una lista de competidores HDA y LDA.
     Retorna una lista de candidatos estructurados.
@@ -61,7 +62,7 @@ def get_competitors_from_gemini(brand_name):
         candidates = json.loads(text_response)
         
         # Normalizar datos para el pipeline
-        formatted_candidates = []
+        formatted_candidates: List[Dict[str, Any]] = []
         for cand in candidates:
             formatted_candidates.append({
                 "clean_url": cand.get("url"), # Asumimos que Gemini da la URL limpia
@@ -78,4 +79,3 @@ def get_competitors_from_gemini(brand_name):
     except Exception as e:
         print(f"❌ Error consultando a Gemini: {e}")
         return []
-

@@ -29,7 +29,7 @@ FAMOUS_DOMAINS = {
     "wix", "squarespace", "bigcommerce", "woocommerce", "magento", 
     "prestashop", "wordpress", "godaddy", "weebly", "webflow",
     
-    # Marketplaces & Retail General (ESTA SECCIÓN FALTABA)
+    # Marketplaces & Retail General
     "ebay", "walmart", "target", "aliexpress", "alibaba", "rakuten", 
     "etsy", "bestbuy", "costco", "flipkart", "wayfair", "mercadolibre",
     "homedepot", "lowes", "macys", "temu",
@@ -37,7 +37,11 @@ FAMOUS_DOMAINS = {
     # Fashion / Sports
     "nike", "adidas", "puma", "reebok", "underarmour", "zara", "hm", 
     "gucci", "lv", "lululemon", "decathlon", "thenorthface", "patagonia",
-    "shein", "asos", "uniqlo", "jd", "footlocker"
+    "shein", "asos", "uniqlo", "jd", "footlocker",
+
+    # Streaming / Entertainment
+    "netflix", "disney", "hbo", "paramount", "peacock", "amazon", "apple",
+    "crunchyroll", "fubo", "sling", "youtube"
 }
 
 # Dominios que siempre son ruido (Redes Sociales, Wikis, Foros)
@@ -50,4 +54,17 @@ IGNORED_DOMAINS = {
 IGNORED_SUBDOMAINS = {
     "apps.apple.com", "play.google.com", "chrome.google.com",
     "support.google.com", "accounts.google.com"
+}
+
+# Términos en URL/Subdominio que indican soporte o comunidad (no competidores)
+IGNORED_TERMS = {
+    "support", "help", "forum", "community", "discussions", "login", "signin", "status"
+}
+
+# Dominios de noticias/blog/tecnología que NO son competidores directos
+NEWS_TECH_DOMAINS = {
+    "cnet", "tomsguide", "slate", "businessinsider", "engadget", "techcrunch",
+    "theverge", "wired", "gizmodo", "mashable", "buzzfeed", "vox", "vice",
+    "forbes", "bloomberg", "reuters", "cnn", "bbc", "nytimes", "wsj",
+    "theguardian", "usatoday", "time", "newsweek", "substack"
 }
