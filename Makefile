@@ -32,6 +32,32 @@ clean:  ## Clean cache and temporary files
 	find . -type f -name "*.pyc" -delete
 	rm -f results.json
 
-dev:  ## Start development server
+dev:  ## Start development server (local)
 	uvicorn api.index:app --reload --host 127.0.0.1 --port 8000
+
+# === Docker Commands ===
+
+docker-build:  ## Build Docker image
+	docker-compose build
+
+docker-up:  ## Start services with Docker Compose
+	docker-compose up -d
+
+docker-down:  ## Stop services
+	docker-compose down
+
+docker-logs:  ## Show logs
+	docker-compose logs -f api
+
+docker-restart:  ## Restart services
+	docker-compose restart
+
+docker-clean:  ## Clean all containers, volumes, and images
+	docker-compose down -v --rmi all
+
+docker-shell:  ## Open shell in API container
+	docker-compose exec api /bin/bash
+
+docker-test:  ## Run tests in container
+	docker-compose exec api python test_local.py "Nike"
 

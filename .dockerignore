@@ -1,0 +1,51 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
+
+# Local artifacts
+results.json
+*.log
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Config files (not needed in container)
+.cursorrules
+ruff.toml
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Test files (optional - comment out if you want to run tests in container)
+# test_*.py
+

@@ -57,31 +57,56 @@ Si la IA no está disponible, el sistema activa su motor de búsqueda clásico m
 *   **Búsqueda Directa:** Busca proactivamente los sitios oficiales de los competidores descubiertos (ej. `fubo.tv` en lugar de un artículo sobre Fubo).
 *   **Filtros Anti-Ruido:** Excluye dominios de noticias, subdominios de la empresa matriz y foros de soporte.
 
-## 🛠️ Instalación y Desarrollo Local
+## 🐳 Quick Start con Docker (Recomendado)
+
+La forma más rápida de ejecutar CompasScan:
+
+```bash
+# 1. Copiar y configurar variables de entorno
+cp env.example .env
+# Edita .env con tus API keys
+
+# 2. Iniciar servicios
+make docker-up
+
+# 3. Verificar que funcione
+curl "http://localhost:8000/health"
+
+# 4. Abrir documentación
+open http://localhost:8000/docs
+
+# 5. Ver logs
+make docker-logs
+```
+
+### Comandos Docker Disponibles:
+```bash
+make docker-build      # Construir imagen
+make docker-up         # Iniciar servicios
+make docker-down       # Detener servicios
+make docker-logs       # Ver logs
+make docker-shell      # Abrir shell en contenedor
+make docker-test       # Ejecutar tests
+make docker-clean      # Limpiar todo
+```
+
+## 🛠️ Instalación Manual (Sin Docker)
+
+Si prefieres ejecutar sin Docker:
 
 1.  **Clonar y Preparar:**
     ```bash
     git clone <repo-url>
     cd compas-scan
-    pip install uv
-    uv venv
+    python3 -m venv .venv --prompt compas-scan
     source .venv/bin/activate  # O .venv\Scripts\activate en Windows
-    uv pip install -r requirements.txt
+    pip install -r requirements.txt
     ```
 
 2.  **Configurar Variables de Entorno:**
-    Crea un archivo `.env` en la raíz con tus credenciales:
-    ```env
-    # Inteligencia Artificial (Recomendado)
-    GEMINI_API_KEY=tu_api_key_de_google_aistudio
-
-    # Base de Datos
-    SUPABASE_URL=[https://tu-proyecto.supabase.co]
-    SUPABASE_KEY=tu-anon-key
-
-    # Google Search API (Fallback necesario)
-    GOOGLE_API_KEY=tu_api_key_de_google_cloud
-    GOOGLE_CSE_ID=tu_search_engine_id_cx
+    ```bash
+    cp env.example .env
+    # Edita .env con tus credenciales
     ```
 
 ## 🧪 Ejecutar Pruebas Dinámicas
