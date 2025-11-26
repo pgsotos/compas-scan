@@ -16,6 +16,7 @@ El proyecto combina la potencia de LLMs con datos en tiempo real:
 *   **Cerebro (IA):** **Google Gemini 2.0 Flash** (Vía API) para razonamiento, descubrimiento de competidores y filtrado de ruido.
 *   **Descubrimiento (Web):** **Google Custom Search JSON API** (Como fallback y para validación de dominios).
 *   **Backend:** FastAPI con **Pydantic** para validación estricta de datos y type safety.
+*   **Cache:** **Redis** (Opcional) para reducir llamadas API y mejorar tiempos de respuesta.
 *   **Core:** Python 3.9+ (Lógica de orquestación con strict typing).
 *   **Infraestructura:** Vercel Serverless Functions.
 *   **Base de Datos:** Supabase (PostgreSQL).
@@ -56,6 +57,41 @@ Si la IA no está disponible, el sistema activa su motor de búsqueda clásico m
 *   **Extracción de Agregadores:** Lee snippets de sitios como CNET o G2 para extraer nombres de competidores.
 *   **Búsqueda Directa:** Busca proactivamente los sitios oficiales de los competidores descubiertos (ej. `fubo.tv` en lugar de un artículo sobre Fubo).
 *   **Filtros Anti-Ruido:** Excluye dominios de noticias, subdominios de la empresa matriz y foros de soporte.
+
+## ⚡ Redis Caching (Opcional)
+
+CompasScan incluye un sistema de caché inteligente para optimizar rendimiento y costos:
+
+### 📊 Beneficios del Cache:
+*   **⚡ 28x más rápido:** De ~2.8s a ~100ms en cache hits
+*   **💰 Hasta 80% menos costos** en llamadas a APIs (Gemini + Google)
+*   **🛡️ Degradación graceful:** Funciona sin Redis automáticamente
+
+### 🎯 Operaciones Cacheadas:
+
+| Tipo | TTL por Defecto | Variable |
+|------|----------------|----------|
+| **Resultados Gemini** | 24 horas | `REDIS_TTL_GEMINI=86400` |
+| **Búsquedas Google** | 1 hora | `REDIS_TTL_GOOGLE=3600` |
+| **Contexto de Marca** | 6 horas | `REDIS_TTL_CONTEXT=21600` |
+
+### 🚀 Configuración Rápida:
+
+```bash
+# 1. Configurar Redis en .env
+REDIS_URL=redis://redis:6379  # Con Docker
+# O
+REDIS_URL=redis://localhost:6379  # Local
+
+# 2. Iniciar con Docker (Redis incluido)
+make docker-up
+
+# 3. Verificar cache funcionando
+curl "http://localhost:8000/?brand=Nike"  # Cache MISS
+curl "http://localhost:8000/?brand=Nike"  # Cache HIT ⚡
+```
+
+📖 **Documentación completa:** [CACHING.md](CACHING.md)
 
 ## 🐳 Quick Start con Docker (Recomendado)
 

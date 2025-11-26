@@ -15,12 +15,20 @@ services:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       - VERCEL_ENV=local
+      # Redis Cache Configuration
+      - REDIS_URL=redis://redis:6379
+      - REDIS_TTL_GEMINI=${REDIS_TTL_GEMINI:-86400}
+      - REDIS_TTL_GOOGLE=${REDIS_TTL_GOOGLE:-3600}
+      - REDIS_TTL_CONTEXT=${REDIS_TTL_CONTEXT:-21600}
     env_file:
       - .env
     volumes:
       # Mount code for development hot-reload
       - ./api:/app/api
       - ./test_local.py:/app/test_local.py
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]

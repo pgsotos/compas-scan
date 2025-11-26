@@ -71,5 +71,5 @@ Execute these improvements in order. **Check with user before moving to the next
 3.  [Done] Async/HTTPX.
 4.  [Done] Linting (Ruff).
 5.  [Done] Dockerization.
-6.  **Caching (Redis) (Current):** Implement caching for frequent searches.
-7.  **Frontend:** Build a Next.js + Tailwind UI (Using **Bun** as package manager).
+6.  [Done] Caching (Redis).
+7.  **Frontend (Current):** Build a Next.js + Tailwind UI (Using **Bun** as package manager).

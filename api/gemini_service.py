@@ -4,6 +4,7 @@ import os
 import google.generativeai as genai  # type: ignore
 from pydantic import ValidationError
 
+from .cache import cache
 from .models import CompetitorCandidate, GeminiCompetitor
 
 # Configurar la API key al importar el módulo
@@ -12,14 +13,24 @@ if api_key:
     genai.configure(api_key=api_key)
 
 
-def get_competitors_from_gemini(brand_name: str) -> list[CompetitorCandidate]:
+async def get_competitors_from_gemini(brand_name: str) -> list[CompetitorCandidate]:
     """
     Consulta a Gemini para obtener una lista de competidores HDA y LDA.
     Retorna una lista de candidatos estructurados.
+    Usa caché con TTL de 24h si está disponible.
     """
     if not api_key:
         print("⚠️ GEMINI_API_KEY no encontrada. Saltando consulta a IA.")
         return []
+
+    # Check cache first
+    cached = await cache.get_gemini_results(brand_name)
+    if cached:
+        # Convert cached dicts back to CompetitorCandidate objects
+        try:
+            return [CompetitorCandidate(**item) for item in cached]
+        except Exception as e:
+            print(f"⚠️  Error deserializando cache: {e}")
 
     print(f"🤖 Consultando a Gemini sobre competidores de: {brand_name}...")
 
@@ -78,6 +89,11 @@ def get_competitors_from_gemini(brand_name: str) -> list[CompetitorCandidate]:
                 continue
 
         print(f"   ✅ Gemini encontró {len(validated_candidates)} candidatos validados.")
+
+        # Save to cache
+        if validated_candidates:
+            await cache.set_gemini_results(brand_name, [c.model_dump() for c in validated_candidates])
+
         return validated_candidates
 
     except json.JSONDecodeError as je:

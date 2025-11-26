@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import httpx
 from bs4 import BeautifulSoup
 
+from .cache import cache
 from .constants import (
     FAMOUS_DOMAINS,
     HEADERS,
@@ -43,7 +44,15 @@ def extract_keywords_from_text(text: str, top_n: int = 5) -> list[str]:
 
 
 async def get_brand_context(user_input: str) -> BrandContext:
-    """Obtiene contexto semántico del sitio de la marca."""
+    """Obtiene contexto semántico del sitio de la marca con cache (TTL: 6h)."""
+    # Check cache first
+    cached = await cache.get_brand_context(user_input)
+    if cached:
+        try:
+            return BrandContext(**cached)
+        except Exception as e:
+            print(f"⚠️  Error deserializando cache de contexto: {e}")
+
     name = user_input
     url = ""
     keywords: list[str] = []
@@ -79,11 +88,21 @@ async def get_brand_context(user_input: str) -> BrandContext:
         print(f"⚠️ Error en contexto: {e}")
         keywords = ["service", "platform", "app", "online"]
 
-    return BrandContext(name=name, url=url, keywords=keywords)
+    context = BrandContext(name=name, url=url, keywords=keywords)
+
+    # Save to cache
+    await cache.set_brand_context(user_input, context.model_dump())
+
+    return context
 
 
 async def search_google_api(query: str, num: int = 5) -> Optional[list[dict]]:
-    """Wrapper seguro para la API de Google."""
+    """Wrapper seguro para la API de Google con cache (TTL: 1h)."""
+    # Check cache first
+    cached = await cache.get_google_search(query)
+    if cached:
+        return cached
+
     api_key = os.environ.get("GOOGLE_API_KEY")
     cse_id = os.environ.get("GOOGLE_CSE_ID")
 
@@ -102,7 +121,13 @@ async def search_google_api(query: str, num: int = 5) -> Optional[list[dict]]:
                 print(f"⚠️ Google API Error: {data['error']['message']}")
                 return None
 
-            return data.get("items", [])
+            results = data.get("items", [])
+
+            # Save to cache
+            if results:
+                await cache.set_google_search(query, results)
+
+            return results
     except Exception:
         return None
 
@@ -216,7 +241,7 @@ async def run_compas_scan(user_input: str) -> ScanReport:
     discarded_candidates: list[DiscardedCandidate] = []
 
     # 1. ESTRATEGIA IA (Gemini)
-    ai_candidates = get_competitors_from_gemini(context.name)
+    ai_candidates = await get_competitors_from_gemini(context.name)
     if ai_candidates:
         print("✨ Usando resultados de Gemini.")
         for cand in ai_candidates:
