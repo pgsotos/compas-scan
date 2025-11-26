@@ -43,9 +43,9 @@ Your goal is to build resilient, modular, and "vibey" software.
 
 ## 🗺️ Improvement Roadmap
 Keep this plan in mind for future tasks:
-1. [Current] Migrate `api/index.py` to FastAPI.
-2. Enforce strict data models with Pydantic.
-3. Optimize concurrency with `httpx` (Async).
+1. ✅ [Done] Migrate `api/index.py` to FastAPI.
+2. ✅ [Done] Enforce strict data models with Pydantic.
+3. [Next] Optimize concurrency with `httpx` (Async).
 4. Implement Docker/Docker Compose for local dev.
 5. Add Redis Caching.
 6. Add Linting (Ruff).
