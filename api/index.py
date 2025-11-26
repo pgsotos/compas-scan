@@ -90,7 +90,7 @@ async def scan_competitors(
     
     try:
         # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
-        scan_report = run_compas_scan(brand)
+        scan_report = await run_compas_scan(brand)
         
         # 2. Persistencia Opcional (No crítica)
         if os.environ.get("SUPABASE_URL"):
