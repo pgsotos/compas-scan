@@ -1,69 +1,141 @@
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
-import json
 import os
-from typing import Dict, Any
+from typing import Optional, List, Dict, Any
+from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from .compas_core import run_compas_scan
 from .db import save_scan_results
 
-class handler(BaseHTTPRequestHandler):
+# Detectar entorno para seguridad
+IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
+
+# Inicializar FastAPI App
+app = FastAPI(
+    title="CompasScan API",
+    description="Herramienta de inteligencia competitiva AI-First usando Gemini y Google Search",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Modelos Pydantic ---
+
+class ScanResponse(BaseModel):
+    """Modelo de respuesta para un escaneo exitoso."""
+    status: str = Field(..., description="Estado de la operación (success/error)")
+    target: Optional[str] = Field(None, description="Marca objetivo del escaneo")
+    data: Optional[Dict[str, Any]] = Field(None, description="Datos del reporte de competidores")
+    message: str = Field(..., description="Mensaje descriptivo del resultado")
+    warnings: Optional[List[str]] = Field(None, description="Advertencias no críticas durante el proceso")
+    debug: Optional[str] = Field(None, description="Información de debug (solo en desarrollo)")
+
+# --- Exception Handlers ---
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    """Maneja excepciones HTTP con formato consistente."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "message": exc.detail,
+            "debug": str(exc) if not IS_PRODUCTION else None
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    """Maneja excepciones generales con seguridad en producción."""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "Error interno del servidor procesando la solicitud.",
+            "debug": str(exc) if not IS_PRODUCTION else None
+        }
+    )
+
+# --- Endpoints ---
+
+@app.get("/", response_model=ScanResponse, summary="Escanear competidores de una marca")
+async def scan_competitors(
+    brand: str = Query(
+        ..., 
+        description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')",
+        min_length=2,
+        example="Hulu"
+    )
+):
+    """
+    Endpoint principal para escanear competidores de una marca.
     
-    def _send_cors_headers(self):
-        """Configura cabeceras CORS para permitir peticiones desde cualquier origen."""
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type')
+    **Estrategia AI-First:**
+    1. Consulta a Gemini 2.0 Flash para obtener competidores (HDA/LDA)
+    2. Si falla, fallback a Google Search API con clasificación basada en señales
+    
+    **Parámetros:**
+    - `brand`: Nombre de la marca (ej. 'Hulu') o dominio (ej. 'hulu.com')
+    
+    **Respuesta:**
+    - `HDA_Competitors`: Competidores de alto dominio/autoridad (gigantes digitales)
+    - `LDA_Competitors`: Competidores de nicho o emergentes
+    - `Discarded_Candidates`: Candidatos rechazados con razón
+    - `warnings`: Advertencias no críticas (ej. error de persistencia)
+    """
+    warnings: List[str] = []
+    
+    try:
+        # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
+        scan_report = run_compas_scan(brand)
+        
+        # 2. Persistencia Opcional (No crítica)
+        if os.environ.get("SUPABASE_URL"):
+            try:
+                save_scan_results(brand, scan_report)
+            except Exception as db_error:
+                warning_msg = f"Persistencia en DB falló (no crítico): {str(db_error)}"
+                print(f"⚠️ {warning_msg}")
+                warnings.append("No se pudo guardar en la base de datos (continuando con el escaneo)")
+        else:
+            print("ℹ️ Supabase no configurada. Saltando persistencia.")
+        
+        # 3. Respuesta Exitosa
+        return ScanResponse(
+            status="success",
+            target=brand,
+            data=scan_report,
+            message="Escaneo completado exitosamente.",
+            warnings=warnings if warnings else None
+        )
+        
+    except Exception as e:
+        # Error crítico en la lógica de negocio
+        print(f"❌ Error Crítico en Escaneo: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error procesando el escaneo de competidores."
+        )
 
-    def do_OPTIONS(self):
-        """Maneja peticiones preflight."""
-        self.send_response(204)
-        self._send_cors_headers()
-        self.end_headers()
+@app.get("/health", summary="Health Check")
+async def health_check():
+    """Endpoint simple para verificar que el servicio está funcionando."""
+    return {
+        "status": "healthy",
+        "service": "CompasScan API",
+        "version": "2.0.0",
+        "environment": os.environ.get("VERCEL_ENV", "local")
+    }
 
-    def _send_json_response(self, status_code: int, data: Dict[str, Any]):
-        """Helper para enviar respuestas JSON consistentes."""
-        self.send_response(status_code)
-        self.send_header('Content-type', 'application/json')
-        self._send_cors_headers()
-        self.end_headers()
-        self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-
-    def do_GET(self):
-        try:
-            # 1. Parsear y Validar Input
-            query = urlparse(self.path).query
-            params = parse_qs(query)
-            target_brand = params.get('brand', [None])[0]
-
-            if not target_brand:
-                return self._send_json_response(400, {
-                    "status": "error",
-                    "message": "Parámetro 'brand' es requerido (ej. ?brand=Hulu)"
-                })
-
-            # 2. Ejecutar Lógica de Negocio
-            scan_report = run_compas_scan(target_brand)
-            
-            # 3. Persistencia (Opcional pero recomendada)
-            if os.environ.get("SUPABASE_URL"): 
-                try:
-                    save_scan_results(target_brand, scan_report)
-                except Exception as db_error:
-                    print(f"⚠️ Error guardando en DB (No crítico): {db_error}")
-            
-            # 4. Respuesta Exitosa
-            return self._send_json_response(200, {
-                "status": "success",
-                "target": target_brand,
-                "data": scan_report,
-                "message": "Escaneo completado exitosamente."
-            })
-            
-        except Exception as e:
-            print(f"❌ Error Crítico en Handler: {e}")
-            return self._send_json_response(500, {
-                "status": "error", 
-                "message": "Error interno del servidor procesando la solicitud.",
-                "debug": str(e)  # Útil para desarrollo, quitar en prod real si es sensible
-            })
+# --- Vercel Handler (ASGI Export) ---
+# Vercel detecta automáticamente la variable 'app' como ASGI application

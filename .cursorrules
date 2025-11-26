@@ -1,66 +1,52 @@
-# Project Rules: CompasScan
+# 🤖 Cursor Rules: CompasScan (AI-First Edition)
 
-Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an automated competitive intelligence tool.
+You are a Senior Vibe-Coder (Python/Serverless/AI Expert).
+Your goal is to build resilient, modular, and "vibey" software.
 
-1. Tech Stack & Infrastructure
+## 🛠️ Tech Stack
+- **Language:** Python 3.9+ (Strict typing).
+- **Package Manager:** `uv` ONLY.
+  - Install: `uv pip install <package>`
+  - Freeze: `uv pip freeze > requirements.txt`
+  - Run: `uv run python script.py`
+  - ❌ NEVER suggest `pip install` or `python -m venv`.
+- **Frameworks:**
+  - Backend: FastAPI (Migrating from BaseHTTPRequestHandler).
+  - AI: Google Gemini 2.0 Flash (`google-generativeai`).
+  - Search: Google Custom Search JSON API (`requests`).
+  - DB: Supabase (`supabase`).
+- **Platform:** Vercel Serverless.
 
-Language: Python 3.9+ (Strict typing where possible).
+## 🌊 Workflow (Gitflow)
+- **Branches:** `main` (Prod), `develop` (Staging), `feature/xyz`, `refactor/xyz`.
+- **NEVER** push directly to `develop` or `main`. Always use PRs.
+- **Commits:** English, Conventional Commits (`feat:`, `refactor:`, `docs:`).
 
-Package Manager: Use `uv` exclusively (`uv pip install ...`). Never use direct pip.
+## 🏗️ Architecture
+- `api/index.py`: Entrypoint (FastAPI app).
+- `api/compas_core.py`: Orchestrator & Business Logic.
+- `api/gemini_service.py`: AI Logic (Gemini 2.0 Flash).
+- `api/constants.py`: Static config (Headers, Stopwords, Famous Domains).
+- `api/db.py`: Database connection.
+- `test_local.py`: Local testing script (CLI args supported).
 
-Deployment: Vercel Serverless Functions (`api/index.py` is the entrypoint).
+## 🧠 Business Logic
+1. **AI-First:** Always query Gemini first via `gemini_service.py`.
+2. **Fallback:** If AI fails, use Google Search API with "Anti-Aggregator" scoring logic.
+3. **HDA/LDA:** Classify based on fame/size (HDA) vs niche/evidence (LDA).
+4. **Transparency:** Always report `Discarded_Candidates`.
 
-Database: Supabase (PostgreSQL). Always use `api/db.py` for connections.
+## ⚡ Vibe-Coder Best Practices
+- **Documentation:** ALWAYS update `README.md` when adding new features, changing architecture, or modifying environment variables.
+- **Clean Code:** Remove dead code/comments. No debug prints in prod.
+- **Config:** Secrets always in `os.environ.get()`.
 
-Artificial Intelligence (Brain): Google Gemini 2.0 Flash (via `google-generativeai`). It is the primary source of analysis.
-
-Search (Fallback): Google Custom Search JSON API (via `requests`). ❌ SCRAPING LIBRARIES like `googlesearch-python` ARE FORBIDDEN.
-
-2. Gitflow & Version Control
-
-Workflow: Strict Gitflow.
-Working Branches: `feature/*`, `fix/*`, `hotfix/*`, `docs/*`.
-Integration:
-  - ❌ DIRECT MERGE to `develop` or `main` locally is FORBIDDEN.
-  - ✅ ALWAYS create a Pull Request (PR) to `develop` from the working branch.
-  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
-
-Commits: In English and Conventional Commits format (feat:, fix:, docs:).
-
-3. Architecture & Modularity
-
-`api/compas_core.py`: Main orchestrator. Decides whether to use AI or traditional search.
-`api/gemini_service.py`: Encapsulated module for all AI interactions.
-`api/constants.py`: ALL static lists (`STOP_WORDS`, `FAMOUS_DOMAINS`, `HEADERS`) must live here.
-`test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
-
-4. Business Logic (The "Brain")
-
-The goal is to classify competitors into two types using a Hybrid approach (AI > Web):
-
-Strategy 1: Direct Consultant (Gemini) 🌟
-High Priority. AI is consulted to identify direct competitors and classify them.
-If AI responds, its results are the source of truth.
-
-Strategy 2: Signal-Based Search (Fallback) 🔍
-If AI fails, enhanced web search is activated.
-Aggregator Extraction: Read snippets from "Top 10..." to extract competitor names.
-Direct Search: Actively search for official sites of discovered competitors.
-
-Classification (HDA/LDA):
-
-HDA (High Domain Availability):
-Global competitors or AI-validated market leaders.
-Factors: Domain in `FAMOUS_DOMAINS`, identified by AI as HDA, strong keyword match.
-
-LDA (Low Domain Availability):
-Niche competitors.
-Factors: Identified by AI as LDA, semantic match in snippet.
-
-Noise Filters:
-Always exclude: News sites (CNET, Forbes), Forums (Reddit, Quora), Subdomains of the brand itself.
-
-5. Vibe-Coder Best Practices
-Transparency: The JSON report must include a `justification` explaining why it was selected (e.g., "Identified by AI: Direct competitor").
-Clean Code: No dead code or debug prints in production.
-Config: Secrets always in `os.environ.get()`.
+## 🗺️ Improvement Roadmap
+Keep this plan in mind for future tasks:
+1. [Current] Migrate `api/index.py` to FastAPI.
+2. Enforce strict data models with Pydantic.
+3. Optimize concurrency with `httpx` (Async).
+4. Implement Docker/Docker Compose for local dev.
+5. Add Redis Caching.
+6. Add Linting (Ruff).
+7. Build Frontend (Next.js + Tailwind).

@@ -1,18 +1,12 @@
 import os
+from typing import Optional
 from supabase import create_client, Client
 
-# Inicialización del Cliente (Singleton pattern simple)
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-
-# Validación de seguridad para el desarrollador
-if not url or not key:
-    raise ValueError("❌ Error de Configuración: Faltan SUPABASE_URL o SUPABASE_KEY en las variables de entorno.")
-
-supabase: Client = create_client(url, key)
-
 def get_supabase_client() -> Client:
-    """Inicializa y devuelve el cliente de Supabase."""
+    """
+    Inicializa y devuelve el cliente de Supabase.
+    Lazy initialization: solo falla si intentas usar la función sin configurar.
+    """
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_KEY")
 
