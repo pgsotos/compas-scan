@@ -1,6 +1,7 @@
 import os
-from typing import Optional
-from supabase import create_client, Client
+
+from supabase import Client, create_client
+
 
 def get_supabase_client() -> Client:
     """
@@ -15,9 +16,10 @@ def get_supabase_client() -> Client:
 
     return create_client(url, key)
 
+
 def save_scan_results(brand_input, scan_report):
     """
-    Toma el reporte JSON jerárquico (HDA/LDA) y lo inserta 
+    Toma el reporte JSON jerárquico (HDA/LDA) y lo inserta
     como filas individuales en la tabla 'competitor_scans'.
     """
 
@@ -28,29 +30,33 @@ def save_scan_results(brand_input, scan_report):
 
     # 2. Procesar Competidores HDA (Alta Disponibilidad)
     for item in scan_report.get("HDA_Competitors", []):
-        rows_to_insert.append({
-            "input_brand": brand_input,
-            "competitor_url": item["url"],
-            "classification": "HDA",
-            "justification": item["justification"],
-            # 'metadata' es útil para guardar el objeto completo si queremos analizarlo luego
-            "metadata": item 
-        })
+        rows_to_insert.append(
+            {
+                "input_brand": brand_input,
+                "competitor_url": item["url"],
+                "classification": "HDA",
+                "justification": item["justification"],
+                # 'metadata' es útil para guardar el objeto completo si queremos analizarlo luego
+                "metadata": item,
+            }
+        )
 
     # 3. Procesar Competidores LDA (Baja Disponibilidad)
     for item in scan_report.get("LDA_Competitors", []):
-        rows_to_insert.append({
-            "input_brand": brand_input,
-            "competitor_url": item["url"],
-            "classification": "LDA",
-            "justification": item["justification"],
-            "metadata": item
-        })
+        rows_to_insert.append(
+            {
+                "input_brand": brand_input,
+                "competitor_url": item["url"],
+                "classification": "LDA",
+                "justification": item["justification"],
+                "metadata": item,
+            }
+        )
 
     # 4. Inserción en Batch a Supabase
     if rows_to_insert:
         try:
-            data, count = supabase.table('competitor_scans').insert(rows_to_insert).execute()
+            data, count = supabase.table("competitor_scans").insert(rows_to_insert).execute()
             print(f"✅ Éxito: Se guardaron {len(rows_to_insert)} competidores en la base de datos.")
             return True
         except Exception as e:

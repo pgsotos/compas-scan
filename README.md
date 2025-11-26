@@ -96,6 +96,30 @@ uv run python test_local.py "Hulu"
 uv run python test_local.py "hubspot.com"
 ```
 
+## 🧹 Code Quality
+
+Este proyecto usa **Ruff** como linter y formatter para mantener la calidad del código.
+
+### Comandos Disponibles (Makefile)
+
+```bash
+make lint           # Run linter
+make lint-fix       # Run linter with auto-fix
+make format         # Format code
+make format-check   # Check formatting without changes
+make check          # Run all checks (lint + format)
+make test           # Run local test
+make dev            # Start development server
+make clean          # Clean cache files
+```
+
+### Pre-commit Checks
+
+Antes de hacer commit, ejecuta:
+```bash
+make check
+```
+
 ## 🛡️ Resiliencia
 
 *   **Circuit Breaker:** Si Gemini falla, el sistema hace fallback automático a Google Search.
