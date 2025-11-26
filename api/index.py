@@ -3,6 +3,10 @@ from typing import List
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 from .compas_core import run_compas_scan
 from .db import save_scan_results
@@ -91,7 +95,7 @@ async def scan_competitors(
         # 2. Persistencia Opcional (No crítica)
         if os.environ.get("SUPABASE_URL"):
             try:
-                save_scan_results(brand, scan_report)
+                save_scan_results(brand, scan_report.model_dump())
             except Exception as db_error:
                 warning_msg = f"Persistencia en DB falló (no crítico): {str(db_error)}"
                 print(f"⚠️ {warning_msg}")
