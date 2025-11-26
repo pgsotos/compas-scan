@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 # Cargar variables de entorno desde .env
 load_dotenv()
 
+from .cache import cache
 from .compas_core import run_compas_scan
 from .db import save_scan_results
 from .models import HealthCheckResponse, ScanResponse
@@ -32,6 +33,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Lifecycle Events ---
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup."""
+    await cache.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup services on shutdown."""
+    await cache.close()
+
 
 # --- Exception Handlers ---
 
