@@ -29,7 +29,9 @@ report = compas_core.run_compas_scan(brand_to_test)
 success = False
 if os.environ.get("SUPABASE_URL"):
     try:
-        success = db.save_scan_results(brand_to_test, report)
+        # Convert Pydantic model to dict for DB storage
+        report_dict = report.model_dump()
+        success = db.save_scan_results(brand_to_test, report_dict)
         if success:
             print(f"\n✨ ÉXITO: Guardado en Supabase.")
     except Exception as db_error:
@@ -41,10 +43,11 @@ else:
 try:
     warnings = [] if success or os.environ.get("SUPABASE_URL") else ["Supabase no configurada"]
     
+    # Convert Pydantic ScanReport to dict for JSON serialization
     final_output = {
         "status": "success",
         "target": brand_to_test,
-        "data": report,
+        "data": report.model_dump(),
         "message": "Escaneo completado exitosamente (Generado localmente).",
         "warnings": warnings if warnings else None
     }
@@ -53,6 +56,6 @@ try:
         json.dump(final_output, f, indent=2, ensure_ascii=False)
     
     print("📄 Archivo 'results.json' actualizado con los últimos resultados.")
-    print(f"\n✅ TEST COMPLETADO: {len(report.get('HDA_Competitors', []))} HDA, {len(report.get('LDA_Competitors', []))} LDA encontrados.")
+    print(f"\n✅ TEST COMPLETADO: {len(report.HDA_Competitors)} HDA, {len(report.LDA_Competitors)} LDA encontrados.")
 except Exception as e:
     print(f"⚠️ No se pudo actualizar results.json: {e}")

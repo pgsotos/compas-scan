@@ -15,10 +15,32 @@ El proyecto combina la potencia de LLMs con datos en tiempo real:
 
 *   **Cerebro (IA):** **Google Gemini 2.0 Flash** (Vía API) para razonamiento, descubrimiento de competidores y filtrado de ruido.
 *   **Descubrimiento (Web):** **Google Custom Search JSON API** (Como fallback y para validación de dominios).
-*   **Core:** Python 3.9+ (Lógica de orquestación).
+*   **Backend:** FastAPI con **Pydantic** para validación estricta de datos y type safety.
+*   **Core:** Python 3.9+ (Lógica de orquestación con strict typing).
 *   **Infraestructura:** Vercel Serverless Functions.
 *   **Base de Datos:** Supabase (PostgreSQL).
 *   **Gestión de Paquetes:** `uv`.
+
+## 🏗️ Modelos de Datos (Pydantic)
+
+El proyecto implementa validación estricta con Pydantic en todas las capas:
+
+### Core Business Models
+*   **`BrandContext`** - Contexto de análisis de marca (nombre, URL, keywords)
+*   **`CompetitorCandidate`** - Candidato raw de búsqueda/IA
+*   **`ClassificationResult`** - Resultado de validación de clasificación
+*   **`Competitor`** - Competidor validado final
+*   **`ScanReport`** - Reporte completo (HDA/LDA + descartados)
+
+### API Models
+*   **`ScanResponse`** - Respuesta del endpoint de escaneo
+*   **`HealthCheckResponse`** - Respuesta de health check
+
+Todos los modelos están centralizados en `api/models.py` para:
+*   ✅ Type safety en toda la aplicación
+*   ✅ Validación automática en boundaries (API, Gemini responses)
+*   ✅ Documentación auto-generada en `/docs`
+*   ✅ Mejor IDE support con autocomplete
 
 ## 🧠 Lógica de Descubrimiento & Clasificación
 
