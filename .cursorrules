@@ -58,17 +58,18 @@ Before writing code or applying fixes, you MUST follow this sequence:
     - Refactor -> `refactor/name`
 3.  **Apply Changes:** Write the code only after the branch is active.
 4.  **Test:** Run `uv run python test_local.py "Brand"` to verify.
-5.  **Commit & Push:** Generate standard git commands.
-6.  **Create PR:** Generate `gh pr create --base develop ...`.
-7.  **✋ STOP & ASK:** Do NOT merge automatically. Ask the user: *"PR created. Ready to merge into develop?"*. Only proceed if confirmed.
+5.  **📝 UPDATE ROADMAP:** If completing a Roadmap item, update `.cursorrules` to mark it as `[Done]` and move `(Current)` to the next item BEFORE committing.
+6.  **Commit & Push:** Generate standard git commands (include .cursorrules if roadmap was updated).
+7.  **Create PR:** Generate `gh pr create --base develop ...`.
+8.  **✋ STOP & ASK:** Do NOT merge automatically. Ask the user: *"PR created. Ready to merge into develop?"*. Only proceed if confirmed.
 
 ## 🗺️ Improvement Roadmap (Current Focus)
 Execute these improvements in order. **Check with user before moving to the next step.**
 
 1.  [Done] FastAPI Migration.
 2.  [Done] Strict Models (Pydantic).
-3.  **Async/HTTPX (Current):** Replace `requests` with `httpx` and `async/await` for concurrent performance.
-4.  **Linting (Ruff):** Integrate Ruff for code quality enforcement.
-5.  **Dockerization:** Add `Dockerfile` and `docker-compose.yml` for local dev consistency.
+3.  [Done] Async/HTTPX.
+4.  [Done] Linting (Ruff).
+5.  **Dockerization (Current):** Add `Dockerfile` and `docker-compose.yml` for local dev consistency.
 6.  **Caching (Redis):** Implement caching for frequent searches.
 7.  **Frontend:** Build a Next.js + Tailwind UI (Using **Bun** as package manager).
