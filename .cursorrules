@@ -4,7 +4,9 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
 
 ## 1. Tech Stack & Infrastructure
 - **Language:** Python 3.9+ (Strict typing where possible).
-- **Package Manager:** Use `uv` exclusively (`uv pip install ...`). **Never** use direct pip.
+- **Package Managers:**
+  - Backend (Python): Use **`uv`** exclusively (`uv pip install ...`). **Never** use pip directly.
+  - Frontend (JS/TS): Use **`bun`** exclusively (`bun install`, `bun run dev`).
 - **Deployment:** Vercel Serverless Functions (`api/index.py` is the entrypoint).
 - **Database:** Supabase (PostgreSQL). Always use `api/db.py` for connections.
 - **Artificial Intelligence (Brain):** Google Gemini 2.0 Flash (via `google-generativeai`). It is the primary source of analysis.
@@ -46,13 +48,27 @@ The goal is to classify competitors into two types using a Hybrid approach (AI >
 - **Config:** Secrets always in `os.environ.get()`.
 - **Documentation:** ALWAYS update `README.md` when adding new features or changing architecture.
 
+## 6. Agent Protocol (MANDATORY) 🛡️
+Before writing code or applying fixes, you MUST follow this sequence:
+
+1.  **Check Branch:** Verify current branch. If on `main` or `develop`, STOP.
+2.  **Create Branch:** For any change, generate a command to create a specific branch:
+    - New Feature -> `feature/name`
+    - Bug Fix -> `fix/name`
+    - Refactor -> `refactor/name`
+3.  **Apply Changes:** Write the code only after the branch is active.
+4.  **Test:** Run `uv run python test_local.py "Brand"` to verify.
+5.  **Commit & Push:** Generate standard git commands.
+6.  **Create PR:** Generate `gh pr create --base develop ...`.
+7.  **✋ STOP & ASK:** Do NOT merge automatically. Ask the user: *"PR created. Ready to merge into develop?"*. Only proceed if confirmed.
+
 ## 🗺️ Improvement Roadmap (Current Focus)
 Execute these improvements in order. **Check with user before moving to the next step.**
 
-1.  **FastAPI Migration (Current):** Refactor `api/index.py` to use FastAPI instead of `BaseHTTPRequestHandler` for auto-docs and validation.
-2.  **Strict Models (Pydantic):** Define data models to validate inputs/outputs strictly.
-3.  **Async/HTTPX:** Replace `requests` with `httpx` and `async/await` for concurrent performance.
+1.  [Done] FastAPI Migration.
+2.  [Done] Strict Models (Pydantic).
+3.  **Async/HTTPX (Current):** Replace `requests` with `httpx` and `async/await` for concurrent performance.
 4.  **Linting (Ruff):** Integrate Ruff for code quality enforcement.
 5.  **Dockerization:** Add `Dockerfile` and `docker-compose.yml` for local dev consistency.
 6.  **Caching (Redis):** Implement caching for frequent searches.
-7.  **Frontend:** Build a Next.js + Tailwind UI.
+7.  **Frontend:** Build a Next.js + Tailwind UI (Using **Bun** as package manager).
