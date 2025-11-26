@@ -1,12 +1,12 @@
 import os
-from typing import Optional, List, Dict, Any
+from typing import List
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
 
 from .compas_core import run_compas_scan
 from .db import save_scan_results
+from .models import ScanResponse, HealthCheckResponse
 
 # Detectar entorno para seguridad
 IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
@@ -28,17 +28,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# --- Modelos Pydantic ---
-
-class ScanResponse(BaseModel):
-    """Modelo de respuesta para un escaneo exitoso."""
-    status: str = Field(..., description="Estado de la operación (success/error)")
-    target: Optional[str] = Field(None, description="Marca objetivo del escaneo")
-    data: Optional[Dict[str, Any]] = Field(None, description="Datos del reporte de competidores")
-    message: str = Field(..., description="Mensaje descriptivo del resultado")
-    warnings: Optional[List[str]] = Field(None, description="Advertencias no críticas durante el proceso")
-    debug: Optional[str] = Field(None, description="Información de debug (solo en desarrollo)")
 
 # --- Exception Handlers ---
 
@@ -127,15 +116,15 @@ async def scan_competitors(
             detail="Error procesando el escaneo de competidores."
         )
 
-@app.get("/health", summary="Health Check")
+@app.get("/health", response_model=HealthCheckResponse, summary="Health Check")
 async def health_check():
     """Endpoint simple para verificar que el servicio está funcionando."""
-    return {
-        "status": "healthy",
-        "service": "CompasScan API",
-        "version": "2.0.0",
-        "environment": os.environ.get("VERCEL_ENV", "local")
-    }
+    return HealthCheckResponse(
+        status="healthy",
+        service="CompasScan API",
+        version="2.0.0",
+        environment=os.environ.get("VERCEL_ENV", "local")
+    )
 
 # --- Vercel Handler (ASGI Export) ---
 # Vercel detecta automáticamente la variable 'app' como ASGI application

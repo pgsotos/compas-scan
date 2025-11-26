@@ -1,15 +1,17 @@
 import os
 import json
 import google.generativeai as genai # type: ignore
-from urllib.parse import urlparse
-from typing import List, Dict, Any
+from typing import List
+from pydantic import ValidationError
+
+from .models import CompetitorCandidate, GeminiCompetitor
 
 # Configurar la API key al importar el módulo
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
 
-def get_competitors_from_gemini(brand_name: str) -> List[Dict[str, Any]]:
+def get_competitors_from_gemini(brand_name: str) -> List[CompetitorCandidate]:
     """
     Consulta a Gemini para obtener una lista de competidores HDA y LDA.
     Retorna una lista de candidatos estructurados.
@@ -59,23 +61,27 @@ def get_competitors_from_gemini(brand_name: str) -> List[Dict[str, Any]]:
         elif text_response.startswith("```"):
             text_response = text_response.replace("```", "")
             
-        candidates = json.loads(text_response)
+        # Parse JSON response
+        raw_data = json.loads(text_response)
         
-        # Normalizar datos para el pipeline
-        formatted_candidates: List[Dict[str, Any]] = []
-        for cand in candidates:
-            formatted_candidates.append({
-                "clean_url": cand.get("url"), # Asumimos que Gemini da la URL limpia
-                "link": cand.get("url"),
-                "title": f"{cand.get('name')} - Official Site",
-                "snippet": cand.get("description"),
-                "source": "gemini_knowledge", # Marca de origen
-                "gemini_type": cand.get("type") # HDA/LDA sugerido por Gemini
-            })
+        # Validate and convert using Pydantic models
+        validated_candidates: List[CompetitorCandidate] = []
+        for raw_competitor in raw_data:
+            try:
+                # Validate with GeminiCompetitor model
+                gemini_comp = GeminiCompetitor(**raw_competitor)
+                # Convert to CompetitorCandidate
+                validated_candidates.append(gemini_comp.to_candidate())
+            except ValidationError as ve:
+                print(f"⚠️ Gemini candidate validation failed: {ve}")
+                continue
             
-        print(f"   ✅ Gemini encontró {len(formatted_candidates)} candidatos.")
-        return formatted_candidates
+        print(f"   ✅ Gemini encontró {len(validated_candidates)} candidatos validados.")
+        return validated_candidates
 
+    except json.JSONDecodeError as je:
+        print(f"❌ Error parsing Gemini JSON response: {je}")
+        return []
     except Exception as e:
         print(f"❌ Error consultando a Gemini: {e}")
         return []
