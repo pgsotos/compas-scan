@@ -1,5 +1,57 @@
 # CompasScan - Setup Guide
 
+## 🐳 Opción 1: Docker (Recomendado)
+
+La forma más rápida y consistente:
+
+### 1. Configurar Variables de Entorno
+
+```bash
+cp env.example .env
+```
+
+Edita `.env` con tus API keys:
+```bash
+GEMINI_API_KEY=your_key_here
+GOOGLE_API_KEY=your_key_here
+GOOGLE_CSE_ID=your_cse_id_here
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_key_here
+```
+
+### 2. Iniciar con Docker Compose
+
+```bash
+# Construir e iniciar
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f api
+
+# Verificar salud
+curl http://localhost:8000/health
+
+# Abrir docs
+open http://localhost:8000/docs
+```
+
+### 3. Comandos Útiles
+
+```bash
+make docker-up        # Iniciar servicios
+make docker-down      # Detener
+make docker-logs      # Ver logs
+make docker-shell     # Shell en contenedor
+make docker-test      # Ejecutar tests
+make docker-clean     # Limpiar todo
+```
+
+---
+
+## 💻 Opción 2: Entorno Virtual Manual
+
+Si prefieres no usar Docker:
+
 ## 🚀 Configuración del Entorno Virtual
 
 ### 1. Crear el Entorno Virtual
