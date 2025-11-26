@@ -1,5 +1,6 @@
 import os
-import requests
+import httpx
+import asyncio
 import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
@@ -28,7 +29,7 @@ def extract_keywords_from_text(text: str, top_n: int = 5) -> List[str]:
     meaningful = [w for w in words if w not in STOP_WORDS and len(w) > 2 and not w.isdigit()]
     return [w for w, c in Counter(meaningful).most_common(top_n)]
 
-def get_brand_context(user_input: str) -> BrandContext:
+async def get_brand_context(user_input: str) -> BrandContext:
     """Obtiene contexto semántico del sitio de la marca."""
     name = user_input
     url = ""
@@ -42,7 +43,7 @@ def get_brand_context(user_input: str) -> BrandContext:
         name = urlparse(url).netloc.replace("www.", "").split('.')[0].capitalize()
     else:
         # Búsqueda rápida del sitio oficial
-        res = search_google_api(f"{user_input} official site", num=1)
+        res = await search_google_api(f"{user_input} official site", num=1)
         if res:
             url = clean_url(res[0]['link'])
         else:
@@ -51,26 +52,27 @@ def get_brand_context(user_input: str) -> BrandContext:
     # 2. Extraer Keywords
     try:
         if url:
-            resp = requests.get(url, headers=HEADERS, timeout=4)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                text = f"{soup.title.string if soup.title else ''} {soup.find('meta', attrs={'name': 'description'}) or ''}"
-                
-                raw_kws = extract_keywords_from_text(text, top_n=10)
-                brand_clean = name.lower()
-                
-                # Filtrar la propia marca y dominios famosos (evitar que 'disney' sea keyword)
-                keywords = [
-                    kw for kw in raw_kws 
-                    if kw != brand_clean and brand_clean not in kw and kw not in FAMOUS_DOMAINS
-                ][:5]
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, headers=HEADERS, timeout=4)
+                if resp.status_code == 200:
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    text = f"{soup.title.string if soup.title else ''} {soup.find('meta', attrs={'name': 'description'}) or ''}"
+                    
+                    raw_kws = extract_keywords_from_text(text, top_n=10)
+                    brand_clean = name.lower()
+                    
+                    # Filtrar la propia marca y dominios famosos (evitar que 'disney' sea keyword)
+                    keywords = [
+                        kw for kw in raw_kws 
+                        if kw != brand_clean and brand_clean not in kw and kw not in FAMOUS_DOMAINS
+                    ][:5]
     except Exception as e:
         print(f"⚠️ Error en contexto: {e}")
         keywords = ["service", "platform", "app", "online"]
 
     return BrandContext(name=name, url=url, keywords=keywords)
 
-def search_google_api(query: str, num: int = 5) -> Optional[List[dict]]:
+async def search_google_api(query: str, num: int = 5) -> Optional[List[dict]]:
     """Wrapper seguro para la API de Google."""
     api_key = os.environ.get("GOOGLE_API_KEY")
     cse_id = os.environ.get("GOOGLE_CSE_ID")
@@ -78,17 +80,18 @@ def search_google_api(query: str, num: int = 5) -> Optional[List[dict]]:
     if not api_key or not cse_id: return None
 
     try:
-        resp = requests.get(
-            "https://www.googleapis.com/customsearch/v1", 
-            params={'key': api_key, 'cx': cse_id, 'q': query, 'num': num}
-        )
-        data = resp.json()
-        
-        if "error" in data:
-            print(f"⚠️ Google API Error: {data['error']['message']}")
-            return None
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://www.googleapis.com/customsearch/v1", 
+                params={'key': api_key, 'cx': cse_id, 'q': query, 'num': num}
+            )
+            data = resp.json()
             
-        return data.get("items", [])
+            if "error" in data:
+                print(f"⚠️ Google API Error: {data['error']['message']}")
+                return None
+                
+            return data.get("items", [])
     except Exception:
         return None
 
@@ -109,7 +112,7 @@ def extract_competitor_names(text: str, brand_name: str) -> List[str]:
         
     return list(found)
 
-def search_direct_competitor(name: str) -> Optional[CompetitorCandidate]:
+async def search_direct_competitor(name: str) -> Optional[CompetitorCandidate]:
     """Busca el sitio oficial de un competidor específico."""
     # Mapeo de dominios conocidos
     known = {
@@ -127,7 +130,7 @@ def search_direct_competitor(name: str) -> Optional[CompetitorCandidate]:
         )
 
     # Búsqueda genérica
-    res = search_google_api(f"{name} official site", num=1)
+    res = await search_google_api(f"{name} official site", num=1)
     if res:
         link = res[0].get('link', '')
         return CompetitorCandidate(
@@ -201,9 +204,9 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
         
     return ClassificationResult(valid=False, reason="Sin señales suficientes de competencia")
 
-def run_compas_scan(user_input: str) -> ScanReport:
+async def run_compas_scan(user_input: str) -> ScanReport:
     print(f"🚀 Iniciando CompasScan 2.0 (AI-First) para: {user_input}...\n")
-    context = get_brand_context(user_input)
+    context = await get_brand_context(user_input)
     
     hda_competitors: List[Competitor] = []
     lda_competitors: List[Competitor] = []
@@ -244,9 +247,13 @@ def run_compas_scan(user_input: str) -> ScanReport:
     seen: Set[str] = set()
     discovered_names: Set[str] = set()
 
-    # A. Búsqueda Inicial
-    for q in queries:
-        items = search_google_api(q, num=10) or []
+    # A. Búsqueda Inicial (Concurrente)
+    search_tasks = [search_google_api(q, num=10) for q in queries]
+    search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+    
+    for items in search_results:
+        if items is None or isinstance(items, Exception):
+            continue
         for item in items:
             # Extraer nombres de agregadores para búsqueda directa
             full_text = f"{item.get('title', '')} {item.get('snippet', '')}"
@@ -265,12 +272,14 @@ def run_compas_scan(user_input: str) -> ScanReport:
                 )
                 raw_candidates.append(candidate)
 
-    # B. Búsqueda Directa de Nombres Descubiertos
+    # B. Búsqueda Directa de Nombres Descubiertos (Concurrente)
     if discovered_names:
         print(f"🔍 Investigando nombres descubiertos: {list(discovered_names)[:5]}...")
-        for name in list(discovered_names)[:5]: # Limitado para no quemar API
-            direct = search_direct_competitor(name)
-            if direct and direct.clean_url not in seen:
+        direct_tasks = [search_direct_competitor(name) for name in list(discovered_names)[:5]]
+        direct_results = await asyncio.gather(*direct_tasks, return_exceptions=True)
+        
+        for direct in direct_results:
+            if direct and not isinstance(direct, Exception) and direct.clean_url not in seen:
                 seen.add(direct.clean_url)
                 raw_candidates.append(direct)
 
