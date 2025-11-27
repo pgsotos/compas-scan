@@ -19,6 +19,7 @@ from .constants import (
     STOP_WORDS,
 )
 from .gemini_service import get_competitors_from_gemini
+from .mcp_clients import brave_search
 from .mocks import clean_url
 from .models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
 
@@ -96,20 +97,58 @@ async def get_brand_context(user_input: str) -> BrandContext:
     return context
 
 
-async def search_google_api(query: str, num: int = 5) -> Optional[list[dict]]:
-    """Wrapper seguro para la API de Google con cache (TTL: 1h)."""
+async def search_web(query: str, num: int = 5) -> Optional[list[dict]]:
+    """
+    Smart web search with automatic fallback.
+
+    Strategy:
+    1. Try Brave Search (free, no limits)
+    2. Fallback to Google Custom Search if Brave fails
+    3. Use cache for both (TTL: 1h)
+
+    Returns standard format:
+    [{"title": str, "url": str, "link": str, "snippet": str}, ...]
+    """
     # Check cache first
     cached = await cache.get_google_search(query)
     if cached:
         return cached
 
+    # Try Brave Search first (free, no limits)
+    if brave_search.enabled:
+        try:
+            print(f"🔍 Searching with Brave: {query}")
+            results = await brave_search.search(query, count=num)
+            if results:
+                # Normalize Brave format to match Google format
+                normalized = []
+                for item in results:
+                    normalized.append(
+                        {
+                            "title": item.get("title", ""),
+                            "link": item.get("url", ""),
+                            "url": item.get("url", ""),  # Add both for compatibility
+                            "snippet": item.get("snippet", ""),
+                        }
+                    )
+
+                # Save to cache
+                await cache.set_google_search(query, normalized)
+                print(f"   ✅ Brave Search: {len(normalized)} results")
+                return normalized
+        except Exception as e:
+            print(f"⚠️  Brave Search failed: {e}")
+
+    # Fallback to Google Custom Search
     api_key = os.environ.get("GOOGLE_API_KEY")
     cse_id = os.environ.get("GOOGLE_CSE_ID")
 
     if not api_key or not cse_id:
+        print("⚠️  No search API available (Brave failed, Google not configured)")
         return None
 
     try:
+        print(f"🔍 Fallback to Google Search: {query}")
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 "https://www.googleapis.com/customsearch/v1",
@@ -126,10 +165,18 @@ async def search_google_api(query: str, num: int = 5) -> Optional[list[dict]]:
             # Save to cache
             if results:
                 await cache.set_google_search(query, results)
+                print(f"   ✅ Google Search: {len(results)} results")
 
             return results
-    except Exception:
+    except Exception as e:
+        print(f"⚠️  Google Search failed: {e}")
         return None
+
+
+# Keep old function for backwards compatibility
+async def search_google_api(query: str, num: int = 5) -> Optional[list[dict]]:
+    """Deprecated: Use search_web() instead."""
+    return await search_web(query, num)
 
 
 def extract_competitor_names(text: str, brand_name: str) -> list[str]:

@@ -12,6 +12,7 @@ from .cache import cache
 from .compas_core import run_compas_scan
 from .db import save_scan_results
 from .models import HealthCheckResponse, ScanResponse
+from .observability import setup_observability
 
 # Detectar entorno para seguridad
 IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
@@ -33,6 +34,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Observability Setup ---
+observability_status = setup_observability(app)
 
 
 # --- Lifecycle Events ---
@@ -132,9 +136,13 @@ async def scan_competitors(
 
 @app.get("/health", response_model=HealthCheckResponse, summary="Health Check")
 async def health_check():
-    """Endpoint simple para verificar que el servicio está funcionando."""
+    """Endpoint para verificar que el servicio está funcionando y estado de observabilidad."""
     return HealthCheckResponse(
-        status="healthy", service="CompasScan API", version="2.0.0", environment=os.environ.get("VERCEL_ENV", "local")
+        status="healthy",
+        service="CompasScan API",
+        version="2.0.0",
+        environment=os.environ.get("VERCEL_ENV", "local"),
+        observability=observability_status,
     )
 
 
