@@ -1,15 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Enable standalone output for Docker
+  output: "standalone",
+
   // Rewrite API requests to Python FastAPI backend
   async rewrites() {
     // In development, proxy to local backend (port 8000)
+    // In Docker, proxy to api service (http://api:8000)
     // In production, Vercel will handle /api/* routes automatically
     const isDevelopment = process.env.NODE_ENV === "development";
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const isDocker = process.env.DOCKER === "true";
+    const backendUrl = isDocker
+      ? "http://api:8000"
+      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-    if (isDevelopment && backendUrl.startsWith("http")) {
-      // Development: proxy /api/* to backend root
+    if ((isDevelopment || isDocker) && backendUrl.startsWith("http")) {
+      // Development/Docker: proxy /api/* to backend root
       // Backend endpoints are at /, /health, /docs, etc.
       return [
         {
