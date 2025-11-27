@@ -22,3 +22,6 @@ Thumbs.db
 
 # --- Artefactos de Ejecución ---
 results.json
+*.log
+*.backup
+.env.backup

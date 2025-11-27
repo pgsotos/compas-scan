@@ -2,6 +2,8 @@
 
 Complete observability solution with Logfire + Sentry + Brave Search.
 
+---
+
 ## 📊 Stack Overview
 
 | Tool | Purpose | Cost | Status |
@@ -9,6 +11,8 @@ Complete observability solution with Logfire + Sentry + Brave Search.
 | **Pydantic Logfire** | Tracing, Metrics, Logs | $0 → $20/mes | ✅ Integrated |
 | **Sentry** | Error Tracking | $0 → $26/mes | ✅ Integrated |
 | **Brave Search** | Web Search (replaces Google) | $0 | ✅ Integrated |
+
+---
 
 ## 🚀 Quick Setup
 
@@ -60,6 +64,8 @@ uvicorn api.index:app --reload
 # Check observability status
 curl http://localhost:8000/health
 ```
+
+---
 
 ## 📈 What You Get
 
@@ -116,6 +122,67 @@ GET /?brand=Nike (2.1s)
 3. Cache results (1h TTL)
 ```
 
+---
+
+## 🧪 Testing & Generating Data
+
+### Using the Test Script
+
+The `test_observability.py` script generates controlled traffic for Logfire and Sentry.
+
+**Basic Usage:**
+```bash
+# Test básico en staging (3 scans)
+python test_observability.py --env staging
+
+# Más scans para más datos
+python test_observability.py --env staging --count 10
+
+# Test en development
+python test_observability.py --env development
+
+# Test local (si tienes servidor corriendo)
+python test_observability.py --env local
+```
+
+**Advanced Options:**
+```bash
+# Especificar número de scans
+python test_observability.py --env staging --count 5
+
+# Especificar requests concurrentes
+python test_observability.py --env staging --concurrent 10
+
+# Saltar tests de errores (solo traces exitosos)
+python test_observability.py --env staging --skip-errors
+```
+
+### Tests Included
+
+1. **Health Check** - Verifica que `/health` funciona y genera trace simple
+2. **Successful Scans** - Ejecuta scans reales con diferentes marcas
+3. **Error Scenarios** - Genera errores controlados (422, 404) para Sentry
+4. **Docs Endpoint** - Verifica que `/docs` está accesible
+5. **Concurrent Requests** - Ejecuta múltiples requests simultáneos
+
+### What to Expect in Dashboards
+
+**Logfire Dashboard:**
+- Traces: `GET /health`, `GET /?brand=X`, `GET /docs`
+- Metrics: Request count, response time (p50, p95, p99), error rate
+- Spans: FastAPI request handling, Gemini API calls, Redis cache operations, Database queries
+
+**Sentry Dashboard:**
+- Issues: `422 Validation Error`, `404 Not Found`
+- Performance: Transaction traces de requests exitosos, Response times
+- Context: Environment, Request parameters, Stack traces
+
+**Check Dashboards:**
+- Logfire: https://logfire.pydantic.dev
+- Sentry: https://sentry.io
+
+---
+
 ## 🎯 Vercel Deployment
 
 ### Environment Variables
@@ -140,6 +207,10 @@ GOOGLE_CSE_ID=your_id
 git push origin develop
 # Auto-deploys to https://compas-scan-dev.vercel.app
 ```
+
+See [VERCEL.md](VERCEL.md) for complete Vercel setup guide.
+
+---
 
 ## 📊 Monitoring Best Practices
 
@@ -186,6 +257,8 @@ transaction.op:http.server transaction.duration:>3s
 message:"Gemini" level:error
 ```
 
+---
+
 ## 🐛 Troubleshooting
 
 ### "Logfire not configured"
@@ -229,15 +302,27 @@ REDIS_TTL_GEMINI=172800  # 48h instead of 24h
 # Look for spans > 2s
 ```
 
+### "observability": false in /health
+
+**Problem:** Keys not configured correctly.
+
+**Solution:**
+1. Verify variables exist in Vercel Dashboard
+2. Verify they're applied to correct environment
+3. Redeploy
+4. Check logs in Vercel Functions
+
+---
+
 ## 📚 Related Docs
 
 - [CACHING.md](CACHING.md) - Redis cache setup
+- [VERCEL.md](VERCEL.md) - Vercel deployment guide
+- [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md) - How to get API keys
 - [README.md](README.md) - Project overview
-- [.cursorrules](.cursorrules) - Development workflow
 
 ---
 
 **Setup Status:** ✅ Complete  
 **Free Tier:** Yes (all tools have free tiers)  
 **Production Ready:** Yes
-

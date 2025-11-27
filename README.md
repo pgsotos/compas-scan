@@ -202,24 +202,38 @@ curl http://localhost:8000/health
 
 ## 🐳 Quick Start con Docker (Recomendado)
 
-La forma más rápida de ejecutar CompasScan:
+La forma más rápida y consistente de ejecutar CompasScan:
+
+### 1. Configurar Variables de Entorno
 
 ```bash
-# 1. Copiar y configurar variables de entorno
 cp env.example .env
-# Edita .env con tus API keys
+```
 
-# 2. Iniciar servicios
+Edita `.env` con tus API keys:
+```bash
+GEMINI_API_KEY=your_key_here
+GOOGLE_API_KEY=your_key_here
+GOOGLE_CSE_ID=your_cse_id_here
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_key_here
+REDIS_URL=redis://redis:6379  # Con Docker
+```
+
+### 2. Iniciar con Docker Compose
+
+```bash
+# Construir e iniciar
 make docker-up
 
-# 3. Verificar que funcione
-curl "http://localhost:8000/health"
-
-# 4. Abrir documentación
-open http://localhost:8000/docs
-
-# 5. Ver logs
+# Ver logs
 make docker-logs
+
+# Verificar salud
+curl http://localhost:8000/health
+
+# Abrir docs
+open http://localhost:8000/docs
 ```
 
 ### Comandos Docker Disponibles:
@@ -233,24 +247,93 @@ make docker-test       # Ejecutar tests
 make docker-clean      # Limpiar todo
 ```
 
+📖 **Documentación completa:** [DOCKER.md](DOCKER.md)
+
+---
+
 ## 🛠️ Instalación Manual (Sin Docker)
 
 Si prefieres ejecutar sin Docker:
 
-1.  **Clonar y Preparar:**
-    ```bash
-    git clone <repo-url>
-    cd compas-scan
-    python3 -m venv .venv --prompt compas-scan
-    source .venv/bin/activate  # O .venv\Scripts\activate en Windows
-    pip install -r requirements.txt
-    ```
+### 1. Crear el Entorno Virtual
 
-2.  **Configurar Variables de Entorno:**
-    ```bash
-    cp env.example .env
-    # Edita .env con tus credenciales
-    ```
+```bash
+python3 -m venv .venv --prompt compas-scan
+```
+
+### 2. Activar el Entorno Virtual
+
+**En macOS/Linux:**
+```bash
+source .venv/bin/activate
+```
+
+**En Windows:**
+```bash
+.venv\Scripts\activate
+```
+
+### 3. Instalar Dependencias
+
+```bash
+# Usar uv (recomendado)
+uv pip install -r requirements.txt
+
+# O con pip tradicional
+pip install -r requirements.txt
+```
+
+### 4. Configurar Variables de Entorno
+
+```bash
+cp env.example .env
+```
+
+Edita `.env` con tus credenciales:
+```bash
+GEMINI_API_KEY=your_gemini_key_here
+GOOGLE_API_KEY=your_google_key_here
+GOOGLE_CSE_ID=your_cse_id_here
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+REDIS_URL=redis://localhost:6379  # Si tienes Redis local
+```
+
+### 5. Verificar Instalación
+
+```bash
+python test_local.py "Nike"
+```
+
+Si todo está correcto, verás:
+```
+🧪 Testeando el flujo de CompasScan para: Nike
+🚀 Iniciando CompasScan 2.0 (AI-First) para: Nike...
+🤖 Consultando a Gemini sobre competidores de: Nike...
+   ✅ Gemini encontró X candidatos validados.
+✨ Usando resultados de Gemini.
+✅ TEST COMPLETADO: X HDA, X LDA encontrados.
+```
+
+### 🔧 Troubleshooting
+
+**El prompt muestra el nombre incorrecto del proyecto:**
+```bash
+# Desactivar entorno anterior
+deactivate
+
+# Eliminar entornos viejos
+rm -rf .venv venv
+
+# Recrear con nombre correcto
+python3 -m venv .venv --prompt compas-scan
+```
+
+**Comando `python` no encontrado:**
+```bash
+# Usar python3 en lugar de python
+python3 -m venv .venv --prompt compas-scan
+```
 
 ## 🧪 Ejecutar Pruebas Dinámicas
 
