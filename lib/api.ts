@@ -51,10 +51,7 @@ function getApiUrl(): string {
 /**
  * Scan competitors for a brand
  */
-export async function scanCompetitors(
-  brand: string,
-  signal?: AbortSignal
-): Promise<ScanResponse> {
+export async function scanCompetitors(brand: string, signal?: AbortSignal): Promise<ScanResponse> {
   const apiUrl = getApiUrl();
   const url = `${apiUrl}/?brand=${encodeURIComponent(brand)}`;
 
@@ -68,15 +65,13 @@ export async function scanCompetitors(
 
   if (!response.ok) {
     let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-    
+
     try {
       const errorData = await response.json();
       if (errorData.detail) {
         // Handle FastAPI validation errors
         if (Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail
-            .map((err: { msg: string }) => err.msg)
-            .join(", ");
+          errorMessage = errorData.detail.map((err: { msg: string }) => err.msg).join(", ");
         } else {
           errorMessage = errorData.detail;
         }
@@ -119,4 +114,3 @@ export async function healthCheck(): Promise<HealthCheckResponse> {
   const data: HealthCheckResponse = await response.json();
   return data;
 }
-

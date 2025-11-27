@@ -6,4 +6,3 @@ export default function LoadingSpinner({ message = "Loading..." }: { message?: s
     </div>
   );
 }
-

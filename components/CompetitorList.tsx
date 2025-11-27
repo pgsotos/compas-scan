@@ -55,10 +55,7 @@ export default function CompetitorList({
             </summary>
             <div className="space-y-2">
               {discardedCandidates.map((candidate, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50 rounded p-3 text-sm text-gray-600"
-                >
+                <div key={index} className="bg-gray-50 rounded p-3 text-sm text-gray-600">
                   <a
                     href={candidate.url}
                     target="_blank"
@@ -84,4 +81,3 @@ export default function CompetitorList({
     </div>
   );
 }
-

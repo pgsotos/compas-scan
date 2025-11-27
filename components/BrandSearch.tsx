@@ -16,26 +16,26 @@ export default function BrandSearch({ onSearch, isLoading = false }: BrandSearch
 
   const validateInput = (value: string): string | null => {
     const trimmed = value.trim();
-    
+
     if (!trimmed) {
       return "Please enter a brand name or URL";
     }
-    
+
     if (trimmed.length < MIN_LENGTH) {
       return `Brand name must be at least ${MIN_LENGTH} characters`;
     }
-    
+
     if (trimmed.length > MAX_LENGTH) {
       return `Brand name must be less than ${MAX_LENGTH} characters`;
     }
-    
+
     return null;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setBrand(value);
-    
+
     // Clear error when user starts typing
     if (error) {
       setError(null);
@@ -46,12 +46,12 @@ export default function BrandSearch({ onSearch, isLoading = false }: BrandSearch
     e.preventDefault();
     const trimmed = brand.trim();
     const validationError = validateInput(trimmed);
-    
+
     if (validationError) {
       setError(validationError);
       return;
     }
-    
+
     if (!isLoading) {
       setError(null);
       onSearch(trimmed);
@@ -70,20 +70,14 @@ export default function BrandSearch({ onSearch, isLoading = false }: BrandSearch
               placeholder="Enter brand name or URL (e.g., 'Nike' or 'nike.com')"
               maxLength={MAX_LENGTH}
               className={`w-full px-4 py-3 text-lg border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                error
-                  ? "border-red-300 focus:ring-red-500"
-                  : "border-gray-300"
+                error ? "border-red-300 focus:ring-red-500" : "border-gray-300"
               }`}
               disabled={isLoading}
               aria-invalid={error ? "true" : "false"}
               aria-describedby={error ? "brand-error" : undefined}
             />
             {error && (
-              <p
-                id="brand-error"
-                className="mt-1 text-sm text-red-600"
-                role="alert"
-              >
+              <p id="brand-error" className="mt-1 text-sm text-red-600" role="alert">
                 {error}
               </p>
             )}
@@ -103,4 +97,3 @@ export default function BrandSearch({ onSearch, isLoading = false }: BrandSearch
     </form>
   );
 }
-
