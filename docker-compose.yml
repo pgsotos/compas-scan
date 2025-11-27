@@ -39,6 +39,31 @@ services:
     networks:
       - compas-network
 
+  # CompasScan Frontend Service (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: compas-scan-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DOCKER=true
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - compas-network
+
   # Redis Cache Service (prepared for Roadmap Item #6)
   redis:
     image: redis:7-alpine

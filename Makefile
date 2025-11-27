@@ -58,8 +58,14 @@ dev:  ## Start development server (local)
 
 # === Docker Commands ===
 
-docker-build:  ## Build Docker image
+docker-build:  ## Build Docker images
 	docker-compose build
+
+docker-build-api:  ## Build only API Docker image
+	docker-compose build api
+
+docker-build-frontend:  ## Build only Frontend Docker image
+	docker-compose build frontend
 
 docker-up:  ## Start services with Docker Compose
 	docker-compose up -d
@@ -67,17 +73,32 @@ docker-up:  ## Start services with Docker Compose
 docker-down:  ## Stop services
 	docker-compose down
 
-docker-logs:  ## Show logs
+docker-logs:  ## Show logs (all services)
+	docker-compose logs -f
+
+docker-logs-api:  ## Show API logs
 	docker-compose logs -f api
+
+docker-logs-frontend:  ## Show Frontend logs
+	docker-compose logs -f frontend
 
 docker-restart:  ## Restart services
 	docker-compose restart
+
+docker-restart-api:  ## Restart API service
+	docker-compose restart api
+
+docker-restart-frontend:  ## Restart Frontend service
+	docker-compose restart frontend
 
 docker-clean:  ## Clean all containers, volumes, and images
 	docker-compose down -v --rmi all
 
 docker-shell:  ## Open shell in API container
 	docker-compose exec api /bin/bash
+
+docker-shell-frontend:  ## Open shell in Frontend container
+	docker-compose exec frontend /bin/sh
 
 docker-test:  ## Run tests in container
 	docker-compose exec api python test_local.py "Nike"
