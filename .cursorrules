@@ -13,12 +13,21 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
 - **Search (Fallback):** Google Custom Search JSON API (via `requests`). ❌ SCRAPING LIBRARIES like `googlesearch-python` ARE FORBIDDEN.
 
 ## 2. Gitflow & Version Control
-- **Workflow:** Strict Gitflow.
-- **Working Branches:** `feature/*`, `refactor/*`, `fix/*`, `docs/*`.
-- **Integration:**
-  - ❌ DIRECT MERGE to `develop` or `main` locally is FORBIDDEN.
-  - ✅ ALWAYS create a Pull Request (PR) to `develop` from the working branch.
+- **Workflow:** Strict Gitflow with 3-tier deployment.
+- **Branch Structure:**
+  - `main` - Production (https://compas-scan.vercel.app)
+  - `staging` - Pre-production/QA (https://compas-scan-staging.vercel.app)
+  - `develop` - Development (https://compas-scan-dev.vercel.app)
+  - `feature/*`, `refactor/*`, `fix/*`, `docs/*` - Working branches
+- **Integration Flow:**
+  - ❌ DIRECT MERGE to `develop`, `staging`, or `main` locally is FORBIDDEN.
+  - ✅ ALWAYS create a Pull Request (PR) from working branch.
+  - ✅ Flow: `feature/*` → `develop` → `staging` → `main`
   - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
+- **Promotion Strategy:**
+  - `develop`: Continuous integration (auto-deploy on merge)
+  - `staging`: Weekly releases for QA testing
+  - `main`: Production releases (after staging approval)
 - **Commits:** In English and Conventional Commits format (`feat:`, `fix:`, `refactor:`, `docs:`).
 
 ## 3. Architecture & Modularity
@@ -51,7 +60,7 @@ The goal is to classify competitors into two types using a Hybrid approach (AI >
 ## 6. Agent Protocol (MANDATORY) 🛡️
 Before writing code or applying fixes, you MUST follow this sequence:
 
-1.  **Check Branch:** Verify current branch. If on `main` or `develop`, STOP.
+1.  **Check Branch:** Verify current branch. If on `main`, `staging`, or `develop`, STOP.
 2.  **Create Branch:** For any change, generate a command to create a specific branch:
     - New Feature -> `feature/name`
     - Bug Fix -> `fix/name`

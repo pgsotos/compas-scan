@@ -45,7 +45,7 @@ Para cada ambiente, agregar:
 - `compas-scan-staging.vercel.app` → Branch: `staging`
 - `compas-scan.vercel.app` → Branch: `main`
 
-**⚠️ Importante:** Deshabilitar "Deployment Protection" en Development y Staging para que los endpoints sean públicamente accesibles. Ver guía completa en: [VERCEL_PROTECTION_FIX.md](VERCEL_PROTECTION_FIX.md)
+**⚠️ Importante:** Deshabilitar "Deployment Protection" en Development y Staging para que los endpoints sean públicamente accesibles.
 
 ---
 
