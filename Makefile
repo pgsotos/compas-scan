@@ -1,4 +1,4 @@
-.PHONY: help install lint format check test clean
+.PHONY: help install lint format check test clean lint-frontend format-frontend format-check-frontend type-check-frontend check-frontend check-all
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -21,7 +21,28 @@ format:  ## Format code with Ruff
 format-check:  ## Check code formatting without making changes
 	ruff format --check api/ test_local.py
 
-check: lint format-check  ## Run all checks (lint + format check)
+check: lint format-check  ## Run all backend checks (lint + format check)
+
+# === Frontend Commands ===
+
+lint-frontend:  ## Run ESLint for frontend
+	bun run lint
+
+lint-fix-frontend:  ## Run ESLint with auto-fix for frontend
+	bun run lint:fix
+
+format-frontend:  ## Format frontend code with Prettier
+	bun run format
+
+format-check-frontend:  ## Check frontend code formatting without making changes
+	bun run format:check
+
+type-check-frontend:  ## Run TypeScript type checking
+	bun run type-check
+
+check-frontend: lint-frontend format-check-frontend type-check-frontend  ## Run all frontend checks
+
+check-all: check check-frontend  ## Run all checks (backend + frontend)
 
 test:  ## Run local test
 	python test_local.py "Nike"
