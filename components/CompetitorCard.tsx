@@ -10,10 +10,10 @@ export default function CompetitorCard({ competitor, type }: CompetitorCardProps
   const badgeLabel = type === "HDA" ? "High Authority" : "Niche";
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 animate-slide-up">
       <div className="flex items-start justify-between mb-3">
         <h3 className="text-xl font-semibold text-gray-900">{competitor.name}</h3>
-        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${badgeColor}`}>
+        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${badgeColor} whitespace-nowrap`}>
           {badgeLabel}
         </span>
       </div>
@@ -21,7 +21,8 @@ export default function CompetitorCard({ competitor, type }: CompetitorCardProps
         href={competitor.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-primary-600 hover:text-primary-700 text-sm mb-3 block truncate"
+        className="text-primary-600 hover:text-primary-700 text-sm mb-3 block truncate transition-colors"
+        aria-label={`Visit ${competitor.name} website`}
       >
         {competitor.url}
       </a>
@@ -29,4 +30,3 @@ export default function CompetitorCard({ competitor, type }: CompetitorCardProps
     </div>
   );
 }
-
