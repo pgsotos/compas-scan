@@ -347,7 +347,7 @@ curl http://localhost:8000/health
 
 ## 📚 Related Documentation
 
-- [Docker Setup](DOCKER.md) - Container configuration
+- [Docker Setup](DOCKER.md) - Container configuration (en este mismo directorio)
 - [Setup Guide](SETUP.md) - Installation instructions
 - [README](README.md) - Project overview
 

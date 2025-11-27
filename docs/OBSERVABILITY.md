@@ -208,7 +208,7 @@ git push origin develop
 # Auto-deploys to https://compas-scan-dev.vercel.app
 ```
 
-See [VERCEL.md](VERCEL.md) for complete Vercel setup guide.
+See [VERCEL.md](VERCEL.md) (en este mismo directorio) for complete Vercel setup guide.
 
 ---
 

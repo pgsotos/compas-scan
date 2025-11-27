@@ -378,7 +378,7 @@ Con Opción A (keys unificadas):
 
 Si tienes problemas:
 
-1. Verificar [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md)
+1. Verificar [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md) (en este mismo directorio)
 2. Verificar [OBSERVABILITY_TESTING.md](OBSERVABILITY_TESTING.md)  
 3. Ver logs en Vercel Dashboard → Functions
 4. Ver errors en Sentry Dashboard

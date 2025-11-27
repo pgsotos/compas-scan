@@ -383,7 +383,7 @@ curl -H "X-Subscription-Token: $BRAVE_API_KEY" \
 - **Logfire Docs:** https://logfire.pydantic.dev/docs/
 - **Sentry Docs:** https://docs.sentry.io/platforms/python/guides/fastapi/
 - **Brave Search API:** https://brave.com/search/api/docs/
-- **CompasScan Observability:** [OBSERVABILITY.md](OBSERVABILITY.md)
+- **CompasScan Observability:** [OBSERVABILITY.md](OBSERVABILITY.md) (en este mismo directorio)
 
 ---
 

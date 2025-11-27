@@ -138,7 +138,7 @@ curl "http://localhost:8000/?brand=Nike"  # Cache MISS
 curl "http://localhost:8000/?brand=Nike"  # Cache HIT ⚡
 ```
 
-📖 **Documentación completa:** [CACHING.md](CACHING.md)
+📖 **Documentación completa:** [docs/CACHING.md](docs/CACHING.md)
 
 ---
 
@@ -194,9 +194,9 @@ curl http://localhost:8000/health
 ```
 
 📖 **Guías completas:** 
-- [OBSERVABILITY.md](OBSERVABILITY.md) - Setup y monitoring
-- [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md) - Obtener todas las keys
-- [VERCEL_ENV_SETUP.md](VERCEL_ENV_SETUP.md) - Deploy a producción
+- [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) - Setup y monitoring
+- [docs/API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md) - Obtener todas las keys
+- [docs/VERCEL.md](docs/VERCEL.md) - Deploy a producción
 
 ---
 
@@ -247,7 +247,7 @@ make docker-test       # Ejecutar tests
 make docker-clean      # Limpiar todo
 ```
 
-📖 **Documentación completa:** [DOCKER.md](DOCKER.md)
+📖 **Documentación completa:** [docs/DOCKER.md](docs/DOCKER.md)
 
 ---
 
@@ -432,7 +432,27 @@ Each environment has its own Vercel project with separate environment variables:
 
 ---
 
-## 📚 Documentación Adicional
+## 📚 Documentación Completa
+
+Toda la documentación técnica está organizada en el directorio `docs/`:
+
+### 🚀 Setup & Deployment
+- **[docs/DOCKER.md](docs/DOCKER.md)** - Guía completa de Docker (Quick Start recomendado)
+- **[docs/VERCEL.md](docs/VERCEL.md)** - Configuración completa de Vercel (dominios, variables, protección)
+
+### 🔑 Configuration
+- **[docs/API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md)** - Cómo obtener todas las API keys necesarias
+- **[docs/CACHING.md](docs/CACHING.md)** - Sistema de caché Redis (configuración y optimización)
+
+### 🔍 Observability
+- **[docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)** - Setup completo de Logfire + Sentry + Testing
+
+### 📖 Historical
+- **[docs/MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md)** - Resumen histórico de migración a FastAPI
+
+---
+
+## 📚 Documentación Adicional (Legacy)
 
 - **Gitflow completo:** Ver `.cursorrules` en el repositorio
 - **Roadmap de mejoras:** Ver sección en `.cursorrules`
