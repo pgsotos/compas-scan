@@ -24,6 +24,7 @@ app = FastAPI(
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    root_path="/api",  # Add root_path for Vercel routing
 )
 
 # Configurar CORS
