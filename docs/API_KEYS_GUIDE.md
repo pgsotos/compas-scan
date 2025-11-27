@@ -7,6 +7,7 @@ Guía completa para obtener todas las API keys necesarias para CompasScan 2.0.
 ## 📋 Checklist de API Keys
 
 ### ✅ Requeridas (Críticas - Ya debes tenerlas)
+
 - [ ] **GEMINI_API_KEY** - Google Gemini (IA)
 - [ ] **GOOGLE_API_KEY** - Google Custom Search (Fallback)
 - [ ] **GOOGLE_CSE_ID** - Custom Search Engine ID
@@ -14,6 +15,7 @@ Guía completa para obtener todas las API keys necesarias para CompasScan 2.0.
 - [ ] **SUPABASE_KEY** - Database Key
 
 ### 🆕 Nuevas (Opcionales pero ALTAMENTE recomendadas)
+
 - [ ] **REDIS_URL** - Upstash Redis (Ya configurado)
 - [ ] **LOGFIRE_TOKEN** - Pydantic Logfire (Observabilidad)
 - [ ] **SENTRY_DSN** - Sentry (Error Tracking)
@@ -47,7 +49,6 @@ Guía completa para obtener todas las API keys necesarias para CompasScan 2.0.
    - En el dashboard, ve a "Settings" o "API Tokens"
    - Click en "Create Token" o "Generate Token"
    - Copia el token (empieza con algo como `logfire_...`)
-   
 5. **Agregar a .env:**
    ```bash
    LOGFIRE_TOKEN=logfire_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -87,9 +88,11 @@ Guía completa para obtener todas las API keys necesarias para CompasScan 2.0.
    - Después de crear el proyecto, verás una pantalla de configuración
    - Busca una línea que diga "dsn" o "Data Source Name"
    - Es una URL que se ve así:
+
    ```
    https://abc123def456@o123456.ingest.sentry.io/7890123
    ```
+
    - **Alternativa:** Ve a Settings → Projects → compas-scan → Client Keys (DSN)
 
 6. **Agregar a .env:**
@@ -136,6 +139,7 @@ Guía completa para obtener todas las API keys necesarias para CompasScan 2.0.
 **Upgrade:** $5/mes = 20,000 queries/month
 
 **Test:**
+
 ```bash
 curl -H "X-Subscription-Token: YOUR_KEY" \
   "https://api.search.brave.com/res/v1/web/search?q=test"
@@ -190,16 +194,19 @@ VERCEL_ENV=local
 ## 🎯 Prioridades de Configuración
 
 ### Tier 1: Crítico (Ya debes tenerlas)
+
 1. ✅ GEMINI_API_KEY
 2. ✅ SUPABASE_URL + SUPABASE_KEY
 3. ✅ REDIS_URL (ya configurado con Upstash)
 
 ### Tier 2: Alta Prioridad (Configura primero)
+
 4. 🆕 **LOGFIRE_TOKEN** → Monitoreo completo
 5. 🆕 **SENTRY_DSN** → Error tracking
 6. 🆕 **BRAVE_API_KEY** → Search gratis
 
 ### Tier 3: Opcional (Nice to have)
+
 7. GOOGLE_API_KEY + GOOGLE_CSE_ID (ya como fallback)
 
 ---
@@ -209,6 +216,7 @@ VERCEL_ENV=local
 Una vez que tengas las keys configuradas:
 
 ### 1. Actualizar .env
+
 ```bash
 # Edita tu archivo .env con las nuevas keys
 nano .env
@@ -216,6 +224,7 @@ nano .env
 ```
 
 ### 2. Reiniciar el servidor
+
 ```bash
 # Si está corriendo, mata el proceso
 lsof -ti:8000 | xargs kill -9
@@ -227,11 +236,13 @@ uvicorn api.index:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### 3. Verificar observabilidad
+
 ```bash
 curl http://localhost:8000/health | jq
 ```
 
 **Respuesta esperada:**
+
 ```json
 {
   "status": "healthy",
@@ -239,18 +250,20 @@ curl http://localhost:8000/health | jq
   "version": "2.0.0",
   "environment": "local",
   "observability": {
-    "logfire": true,    // ✅ Si configuraste LOGFIRE_TOKEN
-    "sentry": true      // ✅ Si configuraste SENTRY_DSN
+    "logfire": true, // ✅ Si configuraste LOGFIRE_TOKEN
+    "sentry": true // ✅ Si configuraste SENTRY_DSN
   }
 }
 ```
 
 ### 4. Test de búsqueda
+
 ```bash
 curl "http://localhost:8000/?brand=Nike"
 ```
 
 **En los logs deberías ver:**
+
 ```
 🔐 Upstash detectado - usando SSL/TLS
 ✅ Redis conectado exitosamente.
@@ -281,6 +294,7 @@ curl "http://localhost:8000/?brand=Nike"
 3. **Agregar todas las variables:**
 
 Para cada variable:
+
 - Click "Add New"
 - Name: `LOGFIRE_TOKEN`
 - Value: `tu_token_aqui`
@@ -308,6 +322,7 @@ Para cada variable:
 ```
 
 4. **Redeploy:**
+
 ```bash
 # Opción A: Git push
 git push origin develop
@@ -317,6 +332,7 @@ git push origin develop
 ```
 
 5. **Verificar:**
+
 ```bash
 curl https://compas-scan-dev.vercel.app/health
 ```
@@ -326,16 +342,19 @@ curl https://compas-scan-dev.vercel.app/health
 ## 📊 Monitoreo Post-Deploy
 
 ### Logfire Dashboard
+
 - URL: https://logfire.pydantic.dev/dashboard
 - Ver: Request traces, latency, errors
 - Buscar por: brand name, endpoint, status code
 
 ### Sentry Dashboard
+
 - URL: https://sentry.io/organizations/tu-org/issues/
 - Ver: Errors, performance issues
 - Alertas: Email cuando hay error rate > 5%
 
 ### Brave Search Dashboard
+
 - URL: https://brave.com/search/api/dashboard
 - Ver: Uso de queries, remaining queries
 - Upgrade: Si necesitas más de 2000/mes
@@ -345,6 +364,7 @@ curl https://compas-scan-dev.vercel.app/health
 ## 🆘 Troubleshooting
 
 ### "Logfire not configured"
+
 ```bash
 # Verificar que el token existe
 echo $LOGFIRE_TOKEN
@@ -356,6 +376,7 @@ echo "LOGFIRE_TOKEN=tu_token" >> .env
 ```
 
 ### "Sentry not configured"
+
 ```bash
 # Verificar DSN
 echo $SENTRY_DSN
@@ -365,6 +386,7 @@ echo $SENTRY_DSN
 ```
 
 ### "Brave Search failed, falling back to Google"
+
 ```bash
 # Verificar key
 echo $BRAVE_API_KEY
@@ -413,7 +435,7 @@ Una vez completados todos los pasos, tienes:
 ✅ **Observability:** Logfire + Sentry  
 ✅ **Deployment:** 3 entornos (dev/staging/prod)  
 ✅ **Docs:** 1,200+ líneas de documentación  
-✅ **Cost:** $0-25/mes  
+✅ **Cost:** $0-25/mes
 
 **Roadmap:** 93% completado (6.5/7)
 
@@ -422,4 +444,3 @@ Una vez completados todos los pasos, tienes:
 **Siguiente:** Roadmap Item #7 - Frontend (Next.js + Tailwind) 🎨
 
 **¡Disfruta tu break! 🎊**
-

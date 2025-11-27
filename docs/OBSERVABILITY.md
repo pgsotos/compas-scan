@@ -6,11 +6,11 @@ Complete observability solution with Logfire + Sentry + Brave Search.
 
 ## 📊 Stack Overview
 
-| Tool | Purpose | Cost | Status |
-|------|---------|------|--------|
-| **Pydantic Logfire** | Tracing, Metrics, Logs | $0 → $20/mes | ✅ Integrated |
-| **Sentry** | Error Tracking | $0 → $26/mes | ✅ Integrated |
-| **Brave Search** | Web Search (replaces Google) | $0 | ✅ Integrated |
+| Tool                 | Purpose                      | Cost         | Status        |
+| -------------------- | ---------------------------- | ------------ | ------------- |
+| **Pydantic Logfire** | Tracing, Metrics, Logs       | $0 → $20/mes | ✅ Integrated |
+| **Sentry**           | Error Tracking               | $0 → $26/mes | ✅ Integrated |
+| **Brave Search**     | Web Search (replaces Google) | $0           | ✅ Integrated |
 
 ---
 
@@ -19,6 +19,7 @@ Complete observability solution with Logfire + Sentry + Brave Search.
 ### 1. Get API Keys
 
 **Logfire (Recommended):**
+
 ```bash
 # Sign up: https://logfire.pydantic.dev
 # Get token from dashboard
@@ -26,6 +27,7 @@ export LOGFIRE_TOKEN="your_token_here"
 ```
 
 **Sentry (Recommended):**
+
 ```bash
 # Sign up: https://sentry.io
 # Create project, get DSN
@@ -33,6 +35,7 @@ export SENTRY_DSN="https://xxx@sentry.io/xxx"
 ```
 
 **Brave Search (Optional but Free):**
+
 ```bash
 # Sign up: https://brave.com/search/api/
 # Free tier: 2000 queries/month
@@ -72,6 +75,7 @@ curl http://localhost:8000/health
 ### Pydantic Logfire
 
 **Automatic Instrumentation:**
+
 - ✅ Every API request traced
 - ✅ Performance metrics (latency, throughput)
 - ✅ Database query tracking
@@ -81,6 +85,7 @@ curl http://localhost:8000/health
 **Dashboard URL:** https://logfire.pydantic.dev
 
 **Example Trace:**
+
 ```
 GET /?brand=Nike (2.1s)
 ├─ get_brand_context() 120ms
@@ -94,6 +99,7 @@ GET /?brand=Nike (2.1s)
 ### Sentry Error Tracking
 
 **Automatic Capture:**
+
 - ✅ Exceptions with full stack trace
 - ✅ Performance issues
 - ✅ Breadcrumbs (what led to error)
@@ -103,6 +109,7 @@ GET /?brand=Nike (2.1s)
 **Dashboard URL:** https://sentry.io
 
 **Alerts:**
+
 - 🚨 Error rate > 5%
 - 🚨 P95 latency > 3s
 - 🚨 API failures
@@ -110,12 +117,14 @@ GET /?brand=Nike (2.1s)
 ### Brave Search
 
 **Benefits vs Google:**
+
 - ✅ Free (2000 queries/month)
 - ✅ No rate limits
 - ✅ Faster responses (~300ms vs ~850ms)
 - ✅ Privacy-focused
 
 **Automatic Fallback:**
+
 ```
 1. Try Brave Search (if BRAVE_API_KEY exists)
 2. Fallback to Google (if Brave fails)
@@ -131,6 +140,7 @@ GET /?brand=Nike (2.1s)
 The `test_observability.py` script generates controlled traffic for Logfire and Sentry.
 
 **Basic Usage:**
+
 ```bash
 # Test básico en staging (3 scans)
 python test_observability.py --env staging
@@ -146,6 +156,7 @@ python test_observability.py --env local
 ```
 
 **Advanced Options:**
+
 ```bash
 # Especificar número de scans
 python test_observability.py --env staging --count 5
@@ -168,16 +179,19 @@ python test_observability.py --env staging --skip-errors
 ### What to Expect in Dashboards
 
 **Logfire Dashboard:**
+
 - Traces: `GET /health`, `GET /?brand=X`, `GET /docs`
 - Metrics: Request count, response time (p50, p95, p99), error rate
 - Spans: FastAPI request handling, Gemini API calls, Redis cache operations, Database queries
 
 **Sentry Dashboard:**
+
 - Issues: `422 Validation Error`, `404 Not Found`
 - Performance: Transaction traces de requests exitosos, Response times
 - Context: Environment, Request parameters, Stack traces
 
 **Check Dashboards:**
+
 - Logfire: https://logfire.pydantic.dev
 - Sentry: https://sentry.io
 
@@ -216,13 +230,13 @@ See [VERCEL.md](VERCEL.md) (en este mismo directorio) for complete Vercel setup 
 
 ### Key Metrics to Watch
 
-| Metric | Target | Alert If |
-|--------|--------|----------|
-| **P95 Latency** | < 2s | > 3s |
-| **Error Rate** | < 1% | > 5% |
-| **Cache Hit Rate** | > 60% | < 40% |
-| **Gemini API Latency** | < 1.5s | > 2s |
-| **Brave Search Latency** | < 500ms | > 1s |
+| Metric                   | Target  | Alert If |
+| ------------------------ | ------- | -------- |
+| **P95 Latency**          | < 2s    | > 3s     |
+| **Error Rate**           | < 1%    | > 5%     |
+| **Cache Hit Rate**       | > 60%   | < 40%    |
+| **Gemini API Latency**   | < 1.5s  | > 2s     |
+| **Brave Search Latency** | < 500ms | > 1s     |
 
 ### Logfire Queries
 
@@ -236,7 +250,7 @@ ORDER BY avg_ms DESC
 LIMIT 10
 
 -- Cache hit rate by hour
-SELECT 
+SELECT
   DATE_TRUNC('hour', timestamp) as hour,
   AVG(CASE WHEN cache_hit THEN 1 ELSE 0 END) * 100 as hit_rate
 FROM logs
@@ -289,11 +303,13 @@ curl -H "X-Subscription-Token: $BRAVE_API_KEY" \
 ### High Latency
 
 **Common causes:**
+
 1. Gemini API slow (check Logfire traces)
 2. Cache disabled (check Redis connection)
 3. Too many concurrent requests
 
 **Solutions:**
+
 ```bash
 # Increase cache TTL
 REDIS_TTL_GEMINI=172800  # 48h instead of 24h
@@ -307,6 +323,7 @@ REDIS_TTL_GEMINI=172800  # 48h instead of 24h
 **Problem:** Keys not configured correctly.
 
 **Solution:**
+
 1. Verify variables exist in Vercel Dashboard
 2. Verify they're applied to correct environment
 3. Redeploy

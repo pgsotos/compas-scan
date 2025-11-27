@@ -4,11 +4,11 @@
 
 ## 🌐 Entornos de Deployment
 
-| Entorno | Estado | URL | Branch | Descripción |
-|---------|--------|-----|--------|-------------|
-| **Production** | ![Production](https://img.shields.io/badge/status-active-success) | [compas-scan.vercel.app](https://compas-scan.vercel.app) | `main` | Producción estable |
-| **Staging** | ![Staging](https://img.shields.io/badge/status-testing-yellow) | [compas-scan-staging.vercel.app](https://compas-scan-staging.vercel.app) | `staging` | Pre-producción / QA |
-| **Development** | ![Development](https://img.shields.io/badge/status-dev-blue) | [compas-scan-dev.vercel.app](https://compas-scan-dev.vercel.app) | `develop` | Desarrollo continuo |
+| Entorno         | Estado                                                            | URL                                                                      | Branch    | Descripción         |
+| --------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------ | --------- | ------------------- |
+| **Production**  | ![Production](https://img.shields.io/badge/status-active-success) | [compas-scan.vercel.app](https://compas-scan.vercel.app)                 | `main`    | Producción estable  |
+| **Staging**     | ![Staging](https://img.shields.io/badge/status-testing-yellow)    | [compas-scan-staging.vercel.app](https://compas-scan-staging.vercel.app) | `staging` | Pre-producción / QA |
+| **Development** | ![Development](https://img.shields.io/badge/status-dev-blue)      | [compas-scan-dev.vercel.app](https://compas-scan-dev.vercel.app)         | `develop` | Desarrollo continuo |
 
 ### 🧪 Testing de Entornos:
 
@@ -41,6 +41,7 @@ Vercel Dashboard → Settings → Domains
 ```
 
 Para cada ambiente, agregar:
+
 - `compas-scan-dev.vercel.app` → Branch: `develop`
 - `compas-scan-staging.vercel.app` → Branch: `staging`
 - `compas-scan.vercel.app` → Branch: `main`
@@ -60,67 +61,74 @@ Para cada ambiente, agregar:
 
 El proyecto combina la potencia de LLMs con datos en tiempo real:
 
-*   **Cerebro (IA):** **Google Gemini 2.0 Flash** (Vía API) para razonamiento, descubrimiento de competidores y filtrado de ruido.
-*   **Descubrimiento (Web):** **Google Custom Search JSON API** (Como fallback y para validación de dominios).
-*   **Backend:** FastAPI con **Pydantic** para validación estricta de datos y type safety.
-*   **Cache:** **Redis** (Opcional) para reducir llamadas API y mejorar tiempos de respuesta.
-*   **Core:** Python 3.9+ (Lógica de orquestación con strict typing).
-*   **Infraestructura:** Vercel Serverless Functions.
-*   **Base de Datos:** Supabase (PostgreSQL).
-*   **Gestión de Paquetes:** `uv`.
+- **Cerebro (IA):** **Google Gemini 2.0 Flash** (Vía API) para razonamiento, descubrimiento de competidores y filtrado de ruido.
+- **Descubrimiento (Web):** **Google Custom Search JSON API** (Como fallback y para validación de dominios).
+- **Backend:** FastAPI con **Pydantic** para validación estricta de datos y type safety.
+- **Cache:** **Redis** (Opcional) para reducir llamadas API y mejorar tiempos de respuesta.
+- **Core:** Python 3.9+ (Lógica de orquestación con strict typing).
+- **Infraestructura:** Vercel Serverless Functions.
+- **Base de Datos:** Supabase (PostgreSQL).
+- **Gestión de Paquetes:** `uv`.
 
 ## 🏗️ Modelos de Datos (Pydantic)
 
 El proyecto implementa validación estricta con Pydantic en todas las capas:
 
 ### Core Business Models
-*   **`BrandContext`** - Contexto de análisis de marca (nombre, URL, keywords)
-*   **`CompetitorCandidate`** - Candidato raw de búsqueda/IA
-*   **`ClassificationResult`** - Resultado de validación de clasificación
-*   **`Competitor`** - Competidor validado final
-*   **`ScanReport`** - Reporte completo (HDA/LDA + descartados)
+
+- **`BrandContext`** - Contexto de análisis de marca (nombre, URL, keywords)
+- **`CompetitorCandidate`** - Candidato raw de búsqueda/IA
+- **`ClassificationResult`** - Resultado de validación de clasificación
+- **`Competitor`** - Competidor validado final
+- **`ScanReport`** - Reporte completo (HDA/LDA + descartados)
 
 ### API Models
-*   **`ScanResponse`** - Respuesta del endpoint de escaneo
-*   **`HealthCheckResponse`** - Respuesta de health check
+
+- **`ScanResponse`** - Respuesta del endpoint de escaneo
+- **`HealthCheckResponse`** - Respuesta de health check
 
 Todos los modelos están centralizados en `api/models.py` para:
-*   ✅ Type safety en toda la aplicación
-*   ✅ Validación automática en boundaries (API, Gemini responses)
-*   ✅ Documentación auto-generada en `/docs`
-*   ✅ Mejor IDE support con autocomplete
+
+- ✅ Type safety en toda la aplicación
+- ✅ Validación automática en boundaries (API, Gemini responses)
+- ✅ Documentación auto-generada en `/docs`
+- ✅ Mejor IDE support con autocomplete
 
 ## 🧠 Lógica de Descubrimiento & Clasificación
 
 El sistema utiliza una estrategia de "Cascada de Inteligencia":
 
 ### 1. Consultor Directo (Gemini AI) 🌟
-*   **Prioridad Alta:** El sistema consulta primero a Gemini actuando como experto en mercado.
-*   **Análisis:** Gemini identifica competidores directos, descarta agregadores/noticias y clasifica automáticamente en HDA/LDA.
-*   **Ventaja:** Elimina el ruido de "listicles" (Top 10...) y foros que suelen ensuciar las búsquedas tradicionales.
+
+- **Prioridad Alta:** El sistema consulta primero a Gemini actuando como experto en mercado.
+- **Análisis:** Gemini identifica competidores directos, descarta agregadores/noticias y clasifica automáticamente en HDA/LDA.
+- **Ventaja:** Elimina el ruido de "listicles" (Top 10...) y foros que suelen ensuciar las búsquedas tradicionales.
 
 ### 2. Búsqueda Basada en Señales (Fallback) 🔍
+
 Si la IA no está disponible, el sistema activa su motor de búsqueda clásico mejorado:
-*   **Extracción de Agregadores:** Lee snippets de sitios como CNET o G2 para extraer nombres de competidores.
-*   **Búsqueda Directa:** Busca proactivamente los sitios oficiales de los competidores descubiertos (ej. `fubo.tv` en lugar de un artículo sobre Fubo).
-*   **Filtros Anti-Ruido:** Excluye dominios de noticias, subdominios de la empresa matriz y foros de soporte.
+
+- **Extracción de Agregadores:** Lee snippets de sitios como CNET o G2 para extraer nombres de competidores.
+- **Búsqueda Directa:** Busca proactivamente los sitios oficiales de los competidores descubiertos (ej. `fubo.tv` en lugar de un artículo sobre Fubo).
+- **Filtros Anti-Ruido:** Excluye dominios de noticias, subdominios de la empresa matriz y foros de soporte.
 
 ## ⚡ Redis Caching (Opcional)
 
 CompasScan incluye un sistema de caché inteligente para optimizar rendimiento y costos:
 
 ### 📊 Beneficios del Cache:
-*   **⚡ 28x más rápido:** De ~2.8s a ~100ms en cache hits
-*   **💰 Hasta 80% menos costos** en llamadas a APIs (Gemini + Google)
-*   **🛡️ Degradación graceful:** Funciona sin Redis automáticamente
+
+- **⚡ 28x más rápido:** De ~2.8s a ~100ms en cache hits
+- **💰 Hasta 80% menos costos** en llamadas a APIs (Gemini + Google)
+- **🛡️ Degradación graceful:** Funciona sin Redis automáticamente
 
 ### 🎯 Operaciones Cacheadas:
 
-| Tipo | TTL por Defecto | Variable |
-|------|----------------|----------|
-| **Resultados Gemini** | 24 horas | `REDIS_TTL_GEMINI=86400` |
-| **Búsquedas Google** | 1 hora | `REDIS_TTL_GOOGLE=3600` |
-| **Contexto de Marca** | 6 horas | `REDIS_TTL_CONTEXT=21600` |
+| Tipo                  | TTL por Defecto | Variable                  |
+| --------------------- | --------------- | ------------------------- |
+| **Resultados Gemini** | 24 horas        | `REDIS_TTL_GEMINI=86400`  |
+| **Búsquedas Google**  | 1 hora          | `REDIS_TTL_GOOGLE=3600`   |
+| **Contexto de Marca** | 6 horas         | `REDIS_TTL_CONTEXT=21600` |
 
 ### 🚀 Configuración Rápida:
 
@@ -148,15 +156,16 @@ CompasScan incluye un stack completo de observabilidad para producción:
 
 ### 📊 Stack de Observabilidad:
 
-| Tool | Purpose | Cost | Features |
-|------|---------|------|----------|
+| Tool                 | Purpose           | Cost           | Features                                         |
+| -------------------- | ----------------- | -------------- | ------------------------------------------------ |
 | **Pydantic Logfire** | Tracing & Metrics | Free → $20/mes | Request tracing, performance metrics, DB queries |
-| **Sentry** | Error Tracking | Free → $26/mes | Exception tracking, performance issues, alerts |
-| **Brave Search** | Web Search | Free | 2000 queries/month, faster than Google |
+| **Sentry**           | Error Tracking    | Free → $26/mes | Exception tracking, performance issues, alerts   |
+| **Brave Search**     | Web Search        | Free           | 2000 queries/month, faster than Google           |
 
 ### ✨ Características:
 
 **Automatic Instrumentation:**
+
 - ✅ Tracing completo de requests (P50, P95, P99 latency)
 - ✅ Tracking de queries a DB y Redis
 - ✅ Monitoreo de llamadas externas (Gemini, Brave, Google)
@@ -165,6 +174,7 @@ CompasScan incluye un stack completo de observabilidad para producción:
 - ✅ Alertas automáticas
 
 **Brave Search Integration:**
+
 - ⚡ **62% más rápido** que Google (~320ms vs ~850ms)
 - 💰 **$0 costo** (vs $5/1K de Google)
 - 🔄 **Fallback automático** a Google si falla
@@ -174,7 +184,7 @@ CompasScan incluye un stack completo de observabilidad para producción:
 ```bash
 # 1. Obtener API keys (15 minutos)
 # - Logfire: https://logfire.pydantic.dev
-# - Sentry: https://sentry.io  
+# - Sentry: https://sentry.io
 # - Brave: https://brave.com/search/api/
 
 # 2. Usar script helper
@@ -187,13 +197,14 @@ curl http://localhost:8000/health
 {
   "status": "healthy",
   "observability": {
-    "logfire": true,  // ✅ 
+    "logfire": true,  // ✅
     "sentry": true    // ✅
   }
 }
 ```
 
-📖 **Guías completas:** 
+📖 **Guías completas:**
+
 - [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) - Setup y monitoring
 - [docs/API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md) - Obtener todas las keys
 - [docs/VERCEL.md](docs/VERCEL.md) - Deploy a producción
@@ -211,6 +222,7 @@ cp env.example .env
 ```
 
 Edita `.env` con tus API keys:
+
 ```bash
 GEMINI_API_KEY=your_key_here
 GOOGLE_API_KEY=your_key_here
@@ -237,6 +249,7 @@ open http://localhost:8000/docs
 ```
 
 ### Comandos Docker Disponibles:
+
 ```bash
 make docker-build      # Construir imagen
 make docker-up         # Iniciar servicios
@@ -264,11 +277,13 @@ python3 -m venv .venv --prompt compas-scan
 ### 2. Activar el Entorno Virtual
 
 **En macOS/Linux:**
+
 ```bash
 source .venv/bin/activate
 ```
 
 **En Windows:**
+
 ```bash
 .venv\Scripts\activate
 ```
@@ -290,6 +305,7 @@ cp env.example .env
 ```
 
 Edita `.env` con tus credenciales:
+
 ```bash
 GEMINI_API_KEY=your_gemini_key_here
 GOOGLE_API_KEY=your_google_key_here
@@ -306,6 +322,7 @@ python test_local.py "Nike"
 ```
 
 Si todo está correcto, verás:
+
 ```
 🧪 Testeando el flujo de CompasScan para: Nike
 🚀 Iniciando CompasScan 2.0 (AI-First) para: Nike...
@@ -318,6 +335,7 @@ Si todo está correcto, verás:
 ### 🔧 Troubleshooting
 
 **El prompt muestra el nombre incorrecto del proyecto:**
+
 ```bash
 # Desactivar entorno anterior
 deactivate
@@ -330,6 +348,7 @@ python3 -m venv .venv --prompt compas-scan
 ```
 
 **Comando `python` no encontrado:**
+
 ```bash
 # Usar python3 en lugar de python
 python3 -m venv .venv --prompt compas-scan
@@ -367,14 +386,15 @@ make clean          # Clean cache files
 ### Pre-commit Checks
 
 Antes de hacer commit, ejecuta:
+
 ```bash
 make check
 ```
 
 ## 🛡️ Resiliencia
 
-*   **Circuit Breaker:** Si Gemini falla, el sistema hace fallback automático a Google Search.
-*   **Mock Mode:** Si Google Search también falla (cuota), se activan datos simulados para demos.
+- **Circuit Breaker:** Si Gemini falla, el sistema hace fallback automático a Google Search.
+- **Mock Mode:** Si Google Search también falla (cuota), se activan datos simulados para demos.
 
 ---
 
@@ -394,28 +414,31 @@ feature/* | fix/* | refactor/* | docs/*
 
 ### Deployment Flow:
 
-| Step | Branch | Action | Deploy To |
-|------|--------|--------|-----------|
-| 1 | `feature/*` | Create feature branch from `develop` | - |
-| 2 | `feature/*` → `develop` | PR & merge after review | Development env |
-| 3 | `develop` → `staging` | PR & merge (weekly release) | Staging env |
-| 4 | `staging` → `main` | PR & merge (after QA approval) | Production env |
+| Step | Branch                  | Action                               | Deploy To       |
+| ---- | ----------------------- | ------------------------------------ | --------------- |
+| 1    | `feature/*`             | Create feature branch from `develop` | -               |
+| 2    | `feature/*` → `develop` | PR & merge after review              | Development env |
+| 3    | `develop` → `staging`   | PR & merge (weekly release)          | Staging env     |
+| 4    | `staging` → `main`      | PR & merge (after QA approval)       | Production env  |
 
 ### Environment Configuration:
 
 Each environment has its own Vercel project with separate environment variables:
 
 **Development (`develop` branch):**
+
 - Auto-deploy on every merge to `develop`
 - URL: https://compas-scan-dev.vercel.app
 - Purpose: Continuous integration, latest features
 
 **Staging (`staging` branch):**
+
 - Deploy on merge to `staging` (weekly)
 - URL: https://compas-scan-staging.vercel.app
 - Purpose: QA testing, pre-production validation
 
 **Production (`main` branch):**
+
 - Deploy on merge to `main` (after approval)
 - URL: https://compas-scan.vercel.app
 - Purpose: Stable production release
@@ -437,17 +460,21 @@ Each environment has its own Vercel project with separate environment variables:
 Toda la documentación técnica está organizada en el directorio `docs/`:
 
 ### 🚀 Setup & Deployment
+
 - **[docs/DOCKER.md](docs/DOCKER.md)** - Guía completa de Docker (Quick Start recomendado)
 - **[docs/VERCEL.md](docs/VERCEL.md)** - Configuración completa de Vercel (dominios, variables, protección)
 
 ### 🔑 Configuration
+
 - **[docs/API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md)** - Cómo obtener todas las API keys necesarias
 - **[docs/CACHING.md](docs/CACHING.md)** - Sistema de caché Redis (configuración y optimización)
 
 ### 🔍 Observability
+
 - **[docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)** - Setup completo de Logfire + Sentry + Testing
 
 ### 📖 Historical
+
 - **[docs/MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md)** - Resumen histórico de migración a FastAPI
 
 ---
