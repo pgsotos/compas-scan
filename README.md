@@ -125,6 +125,66 @@ curl "http://localhost:8000/?brand=Nike"  # Cache HIT ⚡
 
 📖 **Documentación completa:** [CACHING.md](CACHING.md)
 
+---
+
+## 🔍 Observability & Monitoring
+
+CompasScan incluye un stack completo de observabilidad para producción:
+
+### 📊 Stack de Observabilidad:
+
+| Tool | Purpose | Cost | Features |
+|------|---------|------|----------|
+| **Pydantic Logfire** | Tracing & Metrics | Free → $20/mes | Request tracing, performance metrics, DB queries |
+| **Sentry** | Error Tracking | Free → $26/mes | Exception tracking, performance issues, alerts |
+| **Brave Search** | Web Search | Free | 2000 queries/month, faster than Google |
+
+### ✨ Características:
+
+**Automatic Instrumentation:**
+- ✅ Tracing completo de requests (P50, P95, P99 latency)
+- ✅ Tracking de queries a DB y Redis
+- ✅ Monitoreo de llamadas externas (Gemini, Brave, Google)
+- ✅ Error tracking con contexto completo
+- ✅ Performance profiling
+- ✅ Alertas automáticas
+
+**Brave Search Integration:**
+- ⚡ **62% más rápido** que Google (~320ms vs ~850ms)
+- 💰 **$0 costo** (vs $5/1K de Google)
+- 🔄 **Fallback automático** a Google si falla
+
+### 🚀 Setup Rápido:
+
+```bash
+# 1. Obtener API keys (15 minutos)
+# - Logfire: https://logfire.pydantic.dev
+# - Sentry: https://sentry.io  
+# - Brave: https://brave.com/search/api/
+
+# 2. Usar script helper
+./setup-env-vars.sh
+
+# 3. Verificar
+curl http://localhost:8000/health
+
+# Respuesta esperada:
+{
+  "status": "healthy",
+  "observability": {
+    "logfire": true,  // ✅ 
+    "sentry": true    // ✅
+  }
+}
+```
+
+📖 **Guías completas:** 
+- [OBSERVABILITY.md](OBSERVABILITY.md) - Setup y monitoring
+- [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md) - Obtener todas las keys
+- [VERCEL_ENV_SETUP.md](VERCEL_ENV_SETUP.md) - Deploy a producción
+
+---
+
 ## 🐳 Quick Start con Docker (Recomendado)
 
 La forma más rápida de ejecutar CompasScan:
