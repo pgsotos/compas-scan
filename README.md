@@ -61,14 +61,26 @@ Para cada ambiente, agregar:
 
 El proyecto combina la potencia de LLMs con datos en tiempo real:
 
+### Backend
 - **Cerebro (IA):** **Google Gemini 2.0 Flash** (Vía API) para razonamiento, descubrimiento de competidores y filtrado de ruido.
-- **Descubrimiento (Web):** **Google Custom Search JSON API** (Como fallback y para validación de dominios).
+- **Descubrimiento (Web):** **Brave Search API** (Primario) y **Google Custom Search JSON API** (Fallback) para validación de dominios.
 - **Backend:** FastAPI con **Pydantic** para validación estricta de datos y type safety.
 - **Cache:** **Redis** (Opcional) para reducir llamadas API y mejorar tiempos de respuesta.
 - **Core:** Python 3.9+ (Lógica de orquestación con strict typing).
 - **Infraestructura:** Vercel Serverless Functions.
 - **Base de Datos:** Supabase (PostgreSQL).
 - **Gestión de Paquetes:** `uv`.
+
+### Frontend
+- **Framework:** Next.js 16+ (App Router) con TypeScript.
+- **Styling:** Tailwind CSS con diseño responsivo.
+- **Package Manager:** Bun.
+- **Features:**
+  - Barra de búsqueda moderna tipo "Hero Search"
+  - Visualización de competidores (HDA/LDA)
+  - Exportación de resultados en JSON
+  - Diseño completamente responsivo (móvil, tablet, desktop)
+  - Animaciones y transiciones suaves
 
 ## 🏗️ Modelos de Datos (Pydantic)
 
@@ -235,38 +247,106 @@ REDIS_URL=redis://redis:6379  # Con Docker
 ### 2. Iniciar con Docker Compose
 
 ```bash
-# Construir e iniciar
+# Construir e iniciar todos los servicios (API + Frontend + Redis)
 make docker-up
 
 # Ver logs
 make docker-logs
 
-# Verificar salud
+# Verificar salud del backend
 curl http://localhost:8000/health
 
-# Abrir docs
+# Abrir frontend
+open http://localhost:3000
+
+# Abrir docs del API
 open http://localhost:8000/docs
 ```
 
 ### Comandos Docker Disponibles:
 
 ```bash
-make docker-build      # Construir imagen
-make docker-up         # Iniciar servicios
-make docker-down       # Detener servicios
-make docker-logs       # Ver logs
-make docker-shell      # Abrir shell en contenedor
-make docker-test       # Ejecutar tests
-make docker-clean      # Limpiar todo
+make docker-build           # Construir todas las imágenes
+make docker-build-frontend  # Construir solo frontend
+make docker-up              # Iniciar todos los servicios (API + Frontend + Redis)
+make docker-down            # Detener servicios
+make docker-logs            # Ver logs de todos los servicios
+make docker-logs-frontend   # Ver logs solo del frontend
+make docker-shell           # Abrir shell en contenedor API
+make docker-shell-frontend  # Abrir shell en contenedor frontend
+make docker-test            # Ejecutar tests
+make docker-clean           # Limpiar todo
 ```
 
 📖 **Documentación completa:** [docs/DOCKER.md](docs/DOCKER.md)
 
 ---
 
+## 🎨 Frontend (Next.js)
+
+CompasScan incluye una interfaz web moderna construida con Next.js y Tailwind CSS.
+
+### Características del Frontend
+
+- **Diseño Moderno:** Barra de búsqueda tipo "Hero Search" con icono integrado
+- **Responsive:** Adaptado para móvil, tablet y desktop
+- **Visualización Clara:** Cards para competidores HDA y LDA con justificaciones
+- **Exportación:** Descarga de resultados en formato JSON
+- **Estadísticas:** Resumen visual de resultados de búsqueda
+- **Animaciones:** Transiciones suaves y feedback visual
+
+### Desarrollo del Frontend
+
+```bash
+# Instalar dependencias
+bun install
+
+# Iniciar servidor de desarrollo
+bun run dev
+
+# El frontend estará disponible en http://localhost:3000
+```
+
+### Comandos Frontend
+
+```bash
+bun run dev          # Desarrollo
+bun run build        # Build para producción
+bun run start        # Servidor de producción
+bun run lint         # Linter (ESLint)
+bun run format       # Formatter (Prettier)
+bun run type-check   # Verificar tipos TypeScript
+```
+
+### Estructura del Frontend
+
+```
+app/
+  ├── layout.tsx          # Layout principal
+  ├── page.tsx            # Página principal
+  └── globals.css         # Estilos globales
+
+components/
+  ├── BrandSearch.tsx     # Barra de búsqueda
+  ├── CompetitorList.tsx  # Lista de competidores
+  ├── CompetitorCard.tsx  # Card individual
+  ├── ResultsSummary.tsx  # Resumen de estadísticas
+  ├── ExportButton.tsx    # Botón de exportación
+  ├── LoadingSpinner.tsx  # Spinner de carga
+  ├── ErrorMessage.tsx    # Mensajes de error
+  └── Footer.tsx          # Footer
+
+lib/
+  └── api.ts              # Cliente API
+```
+
+---
+
 ## 🛠️ Instalación Manual (Sin Docker)
 
 Si prefieres ejecutar sin Docker:
+
+### Backend
 
 ### 1. Crear el Entorno Virtual
 
@@ -468,6 +548,7 @@ Toda la documentación técnica está organizada en el directorio `docs/`:
 
 - **[docs/API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md)** - Cómo obtener todas las API keys necesarias
 - **[docs/CACHING.md](docs/CACHING.md)** - Sistema de caché Redis (configuración y optimización)
+- **[docs/CONTEXT7_SETUP.md](docs/CONTEXT7_SETUP.md)** - Setup de Context7 MCP para documentación actualizada
 
 ### 🔍 Observability
 
@@ -476,6 +557,7 @@ Toda la documentación técnica está organizada en el directorio `docs/`:
 ### 📖 Historical
 
 - **[docs/MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md)** - Resumen histórico de migración a FastAPI
+- **[docs/CODE_QUALITY_ANALYSIS.md](docs/CODE_QUALITY_ANALYSIS.md)** - Análisis de calidad de código
 
 ---
 
