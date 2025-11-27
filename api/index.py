@@ -48,6 +48,18 @@ app.add_middleware(
 observability_status = setup_observability(app)
 
 
+# --- Middleware for root_path in Vercel ---
+# This ensures OpenAPI schema URLs are correct when accessed via /api/*
+@app.middleware("http")
+async def add_root_path(request, call_next):
+    """Add root_path to request for OpenAPI schema URLs in Vercel."""
+    # Only set root_path if request comes through /api/ prefix
+    if request.url.path.startswith("/api/"):
+        request.scope["root_path"] = "/api"
+    response = await call_next(request)
+    return response
+
+
 # --- Lifecycle Events ---
 @app.on_event("startup")
 async def startup_event():
