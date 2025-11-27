@@ -43,7 +43,7 @@ class CacheManager:
 
             self.client = await aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True)
             await self.client.ping()
-            print("✅ Redis conectado exitosamente.")
+            print("✅ Redis connected successfully.")
         except Exception as e:
             print(f"⚠️  Error conectando a Redis: {e}")
             self.enabled = False
