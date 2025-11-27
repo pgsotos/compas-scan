@@ -129,7 +129,7 @@ class GeminiCompetitor(BaseModel):
         return CompetitorCandidate(
             link=self.url,
             clean_url=self.url,
-            title=f"{self.name} - Official Site",
+            title=self.name,  # Use just the name, not "Official Site"
             snippet=self.description,
             source="gemini_knowledge",
             gemini_type=self.type,
