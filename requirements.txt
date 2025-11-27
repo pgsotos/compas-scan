@@ -63,4 +63,13 @@ websockets==15.0.1
 yarl==1.22.0
 ruff==0.8.4
 redis==5.2.1
-redis==5.2.1
+
+# Observability Stack
+logfire==2.8.0
+sentry-sdk==2.19.2
+opentelemetry-instrumentation-asgi==0.59b0
+opentelemetry-instrumentation-fastapi==0.59b0
+
+# MCP Clients (Model Context Protocol)
+# Note: Brave Search, PostgreSQL, and Fetch are accessed via MCP tools
+# No additional packages needed - handled by Cursor MCP integration
