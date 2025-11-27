@@ -2,26 +2,73 @@
 .env
 .env.local
 .env.*.local
+.env.backup
 
 # --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
 
 # --- Entornos Virtuales ---
 venv/
 .venv/
 env/
+ENV/
 
-# --- Vercel ---
+# --- Node.js / Bun / Frontend ---
+node_modules/
+.bun/
+.bun-install/
+bun.lockb
+.pnp
+.pnp.js
+
+# --- Next.js ---
+.next/
+out/
+.swc/
 .vercel/
+
+# --- TypeScript ---
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Build Outputs ---
+dist/
+build/
+.cache/
+.parcel-cache/
+.turbo/
+
+# --- Testing ---
+.coverage/
+.nyc_output/
+coverage/
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
 
 # --- OS ---
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
 # --- Artefactos de Ejecución ---
 results.json
 *.log
 *.backup
-.env.backup
+*.tmp
