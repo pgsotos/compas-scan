@@ -18,12 +18,14 @@ from .observability import setup_observability
 IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
 
 # Inicializar FastAPI App
+# redirect_slashes=False to handle /api/ and /api the same way
 app = FastAPI(
     title="CompasScan API",
     description="Herramienta de inteligencia competitiva AI-First usando Gemini y Google Search",
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    redirect_slashes=False,  # Don't redirect /api/ to /api
 )
 
 # Create API router with /api prefix
@@ -86,6 +88,7 @@ async def general_exception_handler(request, exc):
 
 
 @api_router.get("/", response_model=ScanResponse, summary="Escanear competidores de una marca")
+@api_router.get("", response_model=ScanResponse, include_in_schema=False)  # Handle /api without trailing slash
 async def scan_competitors(
     brand: str = Query(
         ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
