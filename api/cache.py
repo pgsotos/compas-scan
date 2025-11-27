@@ -35,7 +35,13 @@ class CacheManager:
             return
 
         try:
-            self.client = await aioredis.from_url(self.redis_url, encoding="utf-8", decode_responses=True)
+            # Upstash requires SSL/TLS - convert redis:// to rediss://
+            redis_url = self.redis_url
+            if "upstash.io" in redis_url and redis_url.startswith("redis://"):
+                redis_url = redis_url.replace("redis://", "rediss://", 1)
+                print("🔐 Upstash detectado - usando SSL/TLS")
+
+            self.client = await aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True)
             await self.client.ping()
             print("✅ Redis conectado exitosamente.")
         except Exception as e:
