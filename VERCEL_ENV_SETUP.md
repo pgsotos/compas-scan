@@ -1,6 +1,43 @@
 # 🚀 Vercel Environment Variables Setup
 
-Configuración de variables de entorno para los 3 ambientes de Vercel.
+Configuración completa de Vercel: dominios, protección y variables de entorno para los 3 ambientes.
+
+---
+
+## 🌐 Paso 1: Configurar Dominios Personalizados
+
+Antes de configurar variables, asegúrate de tener los dominios personalizados configurados:
+
+### En Vercel Dashboard → Settings → Domains:
+
+1. **Development (develop branch):**
+   - Domain: `compas-scan-dev.vercel.app`
+   - Git Branch: `develop`
+
+2. **Staging (staging branch):**
+   - Domain: `compas-scan-staging.vercel.app`
+   - Git Branch: `staging`
+
+3. **Production (main branch):**
+   - Domain: `compas-scan.vercel.app`
+   - Git Branch: `main`
+
+---
+
+## 🔓 Paso 2: Deshabilitar Deployment Protection
+
+**⚠️ Crítico:** Development y Staging deben ser públicamente accesibles.
+
+### En Vercel Dashboard → Settings → Deployment Protection:
+
+1. **Preview Deployments (develop & staging):**
+   - Cambiar de "Standard Protection" a **"Disabled"**
+   - Esto permite acceso público a `/health`, `/docs` y otros endpoints
+
+2. **Production Deployment:**
+   - Mantener configuración por defecto (o según preferencia)
+
+**📚 Guía completa:** [VERCEL_PROTECTION_FIX.md](VERCEL_PROTECTION_FIX.md)
 
 ---
 
