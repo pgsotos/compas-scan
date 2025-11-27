@@ -19,7 +19,7 @@ from .constants import (
     STOP_WORDS,
 )
 from .gemini_service import get_competitors_from_gemini
-from .mcp_clients import brave_search
+from .search_clients import brave_search
 from .mocks import clean_url
 from .models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
 

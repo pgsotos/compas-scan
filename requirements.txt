@@ -70,6 +70,6 @@ sentry-sdk==2.19.2
 opentelemetry-instrumentation-asgi==0.59b0
 opentelemetry-instrumentation-fastapi==0.59b0
 
-# MCP Clients (Model Context Protocol)
-# Note: Brave Search, PostgreSQL, and Fetch are accessed via MCP tools
-# No additional packages needed - handled by Cursor MCP integration
+# Search Clients
+# Brave Search API is used directly via HTTP (see api/search_clients.py)
+# No additional packages needed - uses httpx (already included)
