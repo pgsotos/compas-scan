@@ -10,16 +10,16 @@ install:  ## Install dependencies
 	pip install -r requirements.txt
 
 lint:  ## Run Ruff linter
-	ruff check api/ test_local.py
+	ruff check api/ tests/
 
 lint-fix:  ## Run Ruff linter with auto-fix
-	ruff check --fix api/ test_local.py
+	ruff check --fix api/ tests/
 
 format:  ## Format code with Ruff
-	ruff format api/ test_local.py
+	ruff format api/ tests/
 
 format-check:  ## Check code formatting without making changes
-	ruff format --check api/ test_local.py
+	ruff format --check api/ tests/
 
 check: lint format-check  ## Run all backend checks (lint + format check)
 
@@ -45,7 +45,7 @@ check-frontend: lint-frontend format-check-frontend type-check-frontend  ## Run 
 check-all: check check-frontend  ## Run all checks (backend + frontend)
 
 test:  ## Run local test
-	python test_local.py "Nike"
+	python tests/test_local.py "Nike"
 
 clean:  ## Clean cache and temporary files
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -101,5 +101,5 @@ docker-shell-frontend:  ## Open shell in Frontend container
 	docker-compose exec frontend /bin/sh
 
 docker-test:  ## Run tests in container
-	docker-compose exec api python test_local.py "Nike"
+	docker-compose exec api python tests/test_local.py "Nike"
 

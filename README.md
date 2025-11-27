@@ -200,7 +200,7 @@ CompasScan incluye un stack completo de observabilidad para producción:
 # - Brave: https://brave.com/search/api/
 
 # 2. Usar script helper
-./setup-env-vars.sh
+./scripts/setup-env-vars.sh
 
 # 3. Verificar
 curl http://localhost:8000/health
@@ -436,14 +436,14 @@ python3 -m venv .venv --prompt compas-scan
 
 ## 🧪 Ejecutar Pruebas Dinámicas
 
-El script `test_local.py` acepta un argumento opcional para probar diferentes marcas o URLs. El sistema normaliza automáticamente el formato:
+El script `tests/test_local.py` acepta un argumento opcional para probar diferentes marcas o URLs. El sistema normaliza automáticamente el formato:
 
 ```bash
 # 1. Nombre de Marca (Búsqueda automática)
-uv run python test_local.py "Hulu"
+uv run python tests/test_local.py "Hulu"
 
 # 2. Dominio simple
-uv run python test_local.py "hubspot.com"
+uv run python tests/test_local.py "hubspot.com"
 ```
 
 ## 🧹 Code Quality

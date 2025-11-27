@@ -25,7 +25,7 @@ services:
     volumes:
       # Mount code for development hot-reload
       - ./api:/app/api
-      - ./test_local.py:/app/test_local.py
+      - ./tests:/app/tests
     depends_on:
       redis:
         condition: service_healthy
