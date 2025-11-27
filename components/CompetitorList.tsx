@@ -17,14 +17,14 @@ export default function CompetitorList({
   showDiscarded = false,
 }: CompetitorListProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* HDA Competitors */}
       {hdaCompetitors.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 text-center sm:text-left">
             High Domain Authority Competitors ({hdaCompetitors.length})
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {hdaCompetitors.map((competitor, index) => (
               <CompetitorCard key={index} competitor={competitor} type="HDA" />
             ))}
@@ -35,10 +35,10 @@ export default function CompetitorList({
       {/* LDA Competitors */}
       {ldaCompetitors.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 text-center sm:text-left">
             Low Domain Authority Competitors ({ldaCompetitors.length})
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {ldaCompetitors.map((competitor, index) => (
               <CompetitorCard key={index} competitor={competitor} type="LDA" />
             ))}
@@ -48,9 +48,9 @@ export default function CompetitorList({
 
       {/* Discarded Candidates (optional) */}
       {showDiscarded && discardedCandidates.length > 0 && (
-        <section className="border-t pt-8">
+        <section className="border-t pt-6 sm:pt-8">
           <details className="cursor-pointer">
-            <summary className="text-lg font-semibold text-gray-700 mb-4">
+            <summary className="text-base sm:text-lg font-semibold text-gray-700 mb-4 text-center sm:text-left">
               Discarded Candidates ({discardedCandidates.length})
             </summary>
             <div className="space-y-2">
@@ -60,7 +60,7 @@ export default function CompetitorList({
                     href={candidate.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary-600 hover:underline"
+                    className="text-primary-600 hover:underline break-all"
                   >
                     {candidate.url}
                   </a>

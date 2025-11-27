@@ -58,12 +58,14 @@ export default function Home() {
 
   return (
     <main className="flex-grow bg-gray-50">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold text-gray-900 mb-4">CompasScan</h1>
-            <p className="text-xl text-gray-600 mb-8">Automated Competitive Intelligence Tool</p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">CompasScan</h1>
+            <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 px-4">
+              Automated Competitive Intelligence Tool
+            </p>
             <BrandSearch onSearch={handleSearch} isLoading={isLoading} />
           </div>
 
@@ -75,11 +77,15 @@ export default function Home() {
 
           {/* Results */}
           {searchResult?.data && !isLoading && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4 sm:space-y-6 animate-fade-in">
               {/* Summary and Export */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <ResultsSummary data={searchResult.data} target={searchResult.target} />
-                <ExportButton data={searchResult} target={searchResult.target} />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <ResultsSummary data={searchResult.data} target={searchResult.target} />
+                </div>
+                <div className="flex justify-center sm:justify-end">
+                  <ExportButton data={searchResult} target={searchResult.target} />
+                </div>
               </div>
 
               {searchResult.message && (
@@ -115,10 +121,10 @@ export default function Home() {
 
           {/* Empty State (Initial) */}
           {!searchResult && !isLoading && !error && (
-            <div className="bg-white rounded-lg shadow-lg p-12 text-center animate-fade-in">
+            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 lg:p-12 text-center animate-fade-in">
               <div className="max-w-md mx-auto">
                 <svg
-                  className="w-16 h-16 mx-auto text-gray-400 mb-4"
+                  className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-400 mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -131,8 +137,10 @@ export default function Home() {
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
-                <p className="text-gray-500 text-lg mb-4">Enter a brand name or URL to start analyzing competitors</p>
-                <p className="text-gray-400 text-sm">Example: &quot;Nike&quot; or &quot;nike.com&quot;</p>
+                <p className="text-gray-500 text-base sm:text-lg mb-3 sm:mb-4 px-4">
+                  Enter a brand name or URL to start analyzing competitors
+                </p>
+                <p className="text-gray-400 text-sm px-4">Example: &quot;Nike&quot; or &quot;nike.com&quot;</p>
               </div>
             </div>
           )}
