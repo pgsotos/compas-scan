@@ -84,7 +84,7 @@ async def general_exception_handler(request, exc):
 # --- Endpoints ---
 
 
-@api_router.get("/api/", response_model=ScanResponse, summary="Escanear competidores de una marca")
+@api_router.get("/", response_model=ScanResponse, summary="Escanear competidores de una marca")
 async def scan_competitors(
     brand: str = Query(
         ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
@@ -138,7 +138,7 @@ async def scan_competitors(
         raise HTTPException(status_code=500, detail="Error processing competitor scan.")
 
 
-@api_router.get("/api/health", response_model=HealthCheckResponse, summary="Health Check")
+@api_router.get("/health", response_model=HealthCheckResponse, summary="Health Check")
 async def health_check():
     """Endpoint para verificar que el servicio está funcionando y estado de observabilidad."""
     return HealthCheckResponse(
