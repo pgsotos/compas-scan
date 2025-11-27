@@ -109,20 +109,31 @@ class PostgreSQLAnalytics:
     """
 
     def __init__(self):
-        from .db import get_db_client
+        self.supabase = None
+        self.enabled = False
 
-        self.supabase = get_db_client()
-        self.enabled = self.supabase is not None
+    def _get_client(self):
+        """Lazy load Supabase client."""
+        if self.supabase is None:
+            try:
+                from .db import get_supabase_client
+
+                self.supabase = get_supabase_client()
+                self.enabled = True
+            except Exception:
+                self.enabled = False
+        return self.supabase
 
     async def get_top_brands(self, limit: int = 10) -> list[dict]:
         """Get most scanned brands."""
-        if not self.enabled:
+        supabase = self._get_client()
+        if not supabase:
             return []
 
         try:
             # Note: This is a simplified version
             # In production, you'd query actual scan_results table
-            result = self.supabase.table("scan_results").select("brand").limit(limit).execute()
+            result = supabase.table("scan_results").select("brand").limit(limit).execute()
 
             # Count occurrences
             from collections import Counter
@@ -138,13 +149,14 @@ class PostgreSQLAnalytics:
 
     async def get_competitor_stats(self, competitor_url: str) -> Optional[dict]:
         """Get statistics for a specific competitor."""
-        if not self.enabled:
+        supabase = self._get_client()
+        if not supabase:
             return None
 
         try:
             # Query how many times this competitor has been found
             # across different brands
-            result = self.supabase.table("scan_results").select("brand, competitors").execute()
+            result = supabase.table("scan_results").select("brand, competitors").execute()
 
             # Count appearances
             appearances = 0
@@ -173,12 +185,13 @@ class PostgreSQLAnalytics:
 
     async def get_scan_history(self, brand: str, limit: int = 5) -> list[dict]:
         """Get scan history for a specific brand."""
-        if not self.enabled:
+        supabase = self._get_client()
+        if not supabase:
             return []
 
         try:
             result = (
-                self.supabase.table("scan_results")
+                supabase.table("scan_results")
                 .select("*")
                 .eq("brand", brand)
                 .order("created_at", desc=True)

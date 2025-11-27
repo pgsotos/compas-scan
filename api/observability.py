@@ -63,12 +63,7 @@ def setup_logfire(app: FastAPI) -> bool:
         )
 
         # Instrument FastAPI automatically
-        logfire.instrument_fastapi(
-            app,
-            capture_headers=True,
-            capture_request_json_body=True,
-            capture_response_json_body=True,
-        )
+        logfire.instrument_fastapi(app)
 
         # Instrument HTTPX (for external API calls)
         logfire.instrument_httpx()
