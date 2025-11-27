@@ -26,9 +26,10 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Create API router - Vercel already sends paths with /api prefix
-# So we don't need to add prefix here, just handle the paths as they come
-api_router = APIRouter()
+# Create API router with /api prefix
+# Vercel routes /api/* to this file, but passes paths WITHOUT /api prefix
+# So we add the prefix here to match the external URLs
+api_router = APIRouter(prefix="/api")
 
 # Configurar CORS
 app.add_middleware(
