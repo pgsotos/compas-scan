@@ -395,10 +395,10 @@ SUPABASE_KEY=your_supabase_key
 REDIS_URL=redis://localhost:6379  # Si tienes Redis local
 ```
 
-### 5. Verificar Instalación
+### 5. Verificar Instalación del Backend
 
 ```bash
-python test_local.py "Nike"
+python tests/test_local.py "Nike"
 ```
 
 Si todo está correcto, verás:
