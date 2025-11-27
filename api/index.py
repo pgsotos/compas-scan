@@ -20,16 +20,14 @@ IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
 # Inicializar FastAPI App
 # redirect_slashes=False to handle /api/ and /api the same way
 # Note: Vercel passes paths WITHOUT /api/ prefix
-# We use root_path only for OpenAPI schema URLs, not for routing
+# We configure docs to work with /api prefix via root_path in request
 app = FastAPI(
     title="CompasScan API",
     description="Herramienta de inteligencia competitiva AI-First usando Gemini y Google Search",
     version="2.0.0",
     docs_url="/docs",  # Internal path (Vercel passes /docs without /api/)
     redoc_url="/redoc",  # Internal path
-    root_path="/api",  # Only for OpenAPI schema URLs generation
     redirect_slashes=False,  # Don't redirect /api/ to /api
-    openapi_url="/api/openapi.json",  # Explicit OpenAPI schema URL
 )
 
 # Create API router with /api prefix
