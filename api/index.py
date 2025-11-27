@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -24,8 +24,10 @@ app = FastAPI(
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    root_path="/api",  # Add root_path for Vercel routing
 )
+
+# Create API router with /api prefix for Vercel routing
+api_router = APIRouter(prefix="/api")
 
 # Configurar CORS
 app.add_middleware(
@@ -81,7 +83,7 @@ async def general_exception_handler(request, exc):
 # --- Endpoints ---
 
 
-@app.get("/", response_model=ScanResponse, summary="Escanear competidores de una marca")
+@api_router.get("/", response_model=ScanResponse, summary="Escanear competidores de una marca")
 async def scan_competitors(
     brand: str = Query(
         ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
@@ -135,7 +137,7 @@ async def scan_competitors(
         raise HTTPException(status_code=500, detail="Error processing competitor scan.")
 
 
-@app.get("/health", response_model=HealthCheckResponse, summary="Health Check")
+@api_router.get("/health", response_model=HealthCheckResponse, summary="Health Check")
 async def health_check():
     """Endpoint para verificar que el servicio está funcionando y estado de observabilidad."""
     return HealthCheckResponse(
@@ -146,6 +148,47 @@ async def health_check():
         observability=observability_status,
     )
 
+
+# Include API router with /api prefix
+app.include_router(api_router)
+
+# Also include routes without prefix for local development
+@app.get("/", response_model=ScanResponse, include_in_schema=False)
+async def scan_competitors_root(
+    brand: str = Query(..., min_length=2),
+):
+    """Root endpoint for local development (redirects to /api/)."""
+    from .compas_core import run_compas_scan
+    import os
+    
+    warnings: list[str] = []
+    scan_report = await run_compas_scan(brand)
+    
+    if os.environ.get("SUPABASE_URL"):
+        try:
+            from .db import save_scan_results
+            save_scan_results(brand, scan_report.model_dump())
+        except Exception:
+            warnings.append("Could not save to database (continuing with scan)")
+    
+    return ScanResponse(
+        status="success",
+        target=brand,
+        data=scan_report,
+        message="Scan completed successfully.",
+        warnings=warnings if warnings else None,
+    )
+
+@app.get("/health", response_model=HealthCheckResponse, include_in_schema=False)
+async def health_check_root():
+    """Root health endpoint for local development."""
+    return HealthCheckResponse(
+        status="healthy",
+        service="CompasScan API",
+        version="2.0.0",
+        environment=os.environ.get("VERCEL_ENV", "local"),
+        observability=observability_status,
+    )
 
 # --- Vercel Handler (ASGI Export) ---
 # Vercel detecta automáticamente la variable 'app' como ASGI application
