@@ -32,6 +32,21 @@ curl "https://compas-scan-dev.vercel.app/?brand=Nike"
 - **Staging:** [https://compas-scan-staging.vercel.app/docs](https://compas-scan-staging.vercel.app/docs)
 - **Development:** [https://compas-scan-dev.vercel.app/docs](https://compas-scan-dev.vercel.app/docs)
 
+### ⚙️ Configuración de Dominios en Vercel:
+
+Los dominios personalizados (`compas-scan-dev.vercel.app`, etc.) se configuran en:
+
+```
+Vercel Dashboard → Settings → Domains
+```
+
+Para cada ambiente, agregar:
+- `compas-scan-dev.vercel.app` → Branch: `develop`
+- `compas-scan-staging.vercel.app` → Branch: `staging`
+- `compas-scan.vercel.app` → Branch: `main`
+
+**⚠️ Importante:** Deshabilitar "Deployment Protection" en Development y Staging para que los endpoints sean públicamente accesibles. Ver guía completa en: [VERCEL_PROTECTION_FIX.md](VERCEL_PROTECTION_FIX.md)
+
 ---
 
 ## 🎯 Objetivo del Proyecto
