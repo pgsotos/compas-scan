@@ -52,6 +52,7 @@ Antes de configurar variables, asegúrate de tener los dominios personalizados c
 ### Paso 2: Configurar Protection por Ambiente
 
 **Para Development (develop branch):**
+
 ```
 1. Buscar sección: "Preview Deployments"
 2. Encontrar: "Protection for develop branch"
@@ -60,6 +61,7 @@ Antes de configurar variables, asegúrate de tener los dominios personalizados c
 ```
 
 **Para Staging (staging branch):**
+
 ```
 1. En la misma sección "Preview Deployments"
 2. Encontrar: "Protection for staging branch"
@@ -68,6 +70,7 @@ Antes de configurar variables, asegúrate de tener los dominios personalizados c
 ```
 
 **Para Production (main branch):**
+
 ```
 Production puede mantener Standard Protection (opcional).
 No es necesario cambiarlo para que funcione.
@@ -75,17 +78,18 @@ No es necesario cambiarlo para que funcione.
 
 ### Configuración Recomendada
 
-| Ambiente | Branch | Protection | Razón |
-|----------|--------|------------|-------|
-| **Production** | `main` | Standard (opcional) | Producción puede tener seguridad extra |
-| **Staging** | `staging` | Disabled | Necesita ser accesible para QA testing |
-| **Development** | `develop` | Disabled | Necesita ser accesible para desarrollo activo |
+| Ambiente        | Branch    | Protection          | Razón                                         |
+| --------------- | --------- | ------------------- | --------------------------------------------- |
+| **Production**  | `main`    | Standard (opcional) | Producción puede tener seguridad extra        |
+| **Staging**     | `staging` | Disabled            | Necesita ser accesible para QA testing        |
+| **Development** | `develop` | Disabled            | Necesita ser accesible para desarrollo activo |
 
 ---
 
 ## 📋 Variables de Entorno
 
 ### Core APIs (Ya configuradas)
+
 ```bash
 GEMINI_API_KEY=your_gemini_api_key_here
 GOOGLE_API_KEY=your_google_api_key_here
@@ -95,6 +99,7 @@ SUPABASE_KEY=your_supabase_anon_key_here
 ```
 
 ### Redis Cache (Ya configuradas)
+
 ```bash
 REDIS_URL=redis://default:your_password@your-host.upstash.io:6379
 REDIS_TTL_GEMINI=86400
@@ -103,6 +108,7 @@ REDIS_TTL_CONTEXT=21600
 ```
 
 ### Observability Stack (NUEVAS - Agregar)
+
 ```bash
 # Pydantic Logfire - Get from: https://logfire.pydantic.dev
 LOGFIRE_TOKEN=logfire_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -123,6 +129,7 @@ BRAVE_API_KEY=BSAxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ### Pasos en Vercel Dashboard
 
 1. **Ir a Variables de Entorno:**
+
    ```
    Vercel Dashboard → Settings → Environment Variables
    ```
@@ -172,6 +179,7 @@ grep BRAVE_API_KEY .env | cut -d'=' -f2
 **URL:** https://compas-scan-dev.vercel.app
 
 **Variables a agregar:**
+
 ```bash
 LOGFIRE_TOKEN=logfire_dev_xxxxx
 SENTRY_DSN=https://dev_key@sentry.io/project_id
@@ -188,6 +196,7 @@ VERCEL_ENV=development  # Auto-configurado por Vercel
 **URL:** https://compas-scan-staging.vercel.app
 
 **Variables a agregar:**
+
 ```bash
 LOGFIRE_TOKEN=logfire_staging_xxxxx
 SENTRY_DSN=https://staging_key@sentry.io/project_id
@@ -204,6 +213,7 @@ VERCEL_ENV=staging  # Auto-configurado por Vercel
 **URL:** https://compas-scan.vercel.app
 
 **Variables a agregar:**
+
 ```bash
 LOGFIRE_TOKEN=logfire_prod_xxxxx
 SENTRY_DSN=https://prod_key@sentry.io/project_id
@@ -231,6 +241,7 @@ curl https://compas-scan.vercel.app/health | jq
 ```
 
 **Respuesta Esperada:**
+
 ```json
 {
   "status": "healthy",
@@ -238,8 +249,8 @@ curl https://compas-scan.vercel.app/health | jq
   "version": "2.0.0",
   "environment": "development",
   "observability": {
-    "logfire": true,   // ✅ Debe ser true
-    "sentry": true     // ✅ Debe ser true
+    "logfire": true, // ✅ Debe ser true
+    "sentry": true // ✅ Debe ser true
   }
 }
 ```
@@ -257,7 +268,7 @@ Vercel Dashboard → Functions → View logs
 
 Buscar:
 ✅ Logfire configured successfully
-✅ Sentry configured successfully  
+✅ Sentry configured successfully
 🔍 Searching with Brave: nike competitors
    ✅ Brave Search: 10 results
 ```
@@ -271,6 +282,7 @@ Buscar:
 **Problema:** Las keys no están configuradas correctamente.
 
 **Solución:**
+
 1. Verificar que las variables existen en Vercel Dashboard
 2. Verificar que están aplicadas al ambiente correcto
 3. Hacer redeploy
@@ -281,6 +293,7 @@ Buscar:
 **Problema:** Deployment Protection está habilitada.
 
 **Solución:**
+
 1. Ir a Vercel Dashboard → Settings → Deployment Protection
 2. Deshabilitar Protection para `develop` y `staging` branches
 3. Esperar 1-2 minutos
@@ -291,6 +304,7 @@ Buscar:
 **Problema:** BRAVE_API_KEY no está configurada o es inválida.
 
 **Solución:**
+
 1. Verificar key en Vercel Dashboard
 2. Test manual:
    ```bash
@@ -304,6 +318,7 @@ Buscar:
 **Problema:** Problema de routing en Vercel.
 
 **Solución:**
+
 1. Verificar que `vercel.json` está correctamente configurado
 2. Ver logs en Vercel Functions
 3. Hacer redeploy
@@ -313,6 +328,7 @@ Buscar:
 ## 📊 Monitoreo Post-Configuración
 
 ### Logfire
+
 ```
 1. Ir a: https://logfire.pydantic.dev/dashboard
 2. Seleccionar proyecto: compas-scan
@@ -320,7 +336,8 @@ Buscar:
 4. Verificar que llegan requests de los 3 ambientes
 ```
 
-### Sentry  
+### Sentry
+
 ```
 1. Ir a: https://sentry.io
 2. Seleccionar proyecto: compas-scan
@@ -329,6 +346,7 @@ Buscar:
 ```
 
 ### Brave Search
+
 ```
 1. Ir a: https://brave.com/search/api/dashboard
 2. Ver usage statistics
@@ -358,14 +376,15 @@ Buscar:
 
 Con Opción A (keys unificadas):
 
-| Servicio | Plan | Costo |
-|----------|------|-------|
-| Logfire | Free | $0 |
-| Sentry | Free | $0 |
-| Brave | Free | $0 |
-| **Total** | | **$0/mes** |
+| Servicio  | Plan | Costo      |
+| --------- | ---- | ---------- |
+| Logfire   | Free | $0         |
+| Sentry    | Free | $0         |
+| Brave     | Free | $0         |
+| **Total** |      | **$0/mes** |
 
 **Límites Free Tier:**
+
 - Logfire: 1M spans/mes
 - Sentry: 5K errors + 10K transactions/mes
 - Brave: 2000 queries/mes
@@ -379,11 +398,10 @@ Con Opción A (keys unificadas):
 Si tienes problemas:
 
 1. Verificar [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md) (en este mismo directorio)
-2. Verificar [OBSERVABILITY_TESTING.md](OBSERVABILITY_TESTING.md)  
+2. Verificar [OBSERVABILITY_TESTING.md](OBSERVABILITY_TESTING.md)
 3. Ver logs en Vercel Dashboard → Functions
 4. Ver errors en Sentry Dashboard
 
 ---
 
 **¡Listo!** Una vez configuradas estas variables, tendrás observabilidad completa en los 3 ambientes. 🎉
-

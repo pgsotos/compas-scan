@@ -1,4 +1,4 @@
-.PHONY: help install lint format check test clean
+.PHONY: help install lint format check test clean lint-frontend format-frontend format-check-frontend type-check-frontend check-frontend check-all
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -10,21 +10,42 @@ install:  ## Install dependencies
 	pip install -r requirements.txt
 
 lint:  ## Run Ruff linter
-	ruff check api/ test_local.py
+	ruff check api/ tests/
 
 lint-fix:  ## Run Ruff linter with auto-fix
-	ruff check --fix api/ test_local.py
+	ruff check --fix api/ tests/
 
 format:  ## Format code with Ruff
-	ruff format api/ test_local.py
+	ruff format api/ tests/
 
 format-check:  ## Check code formatting without making changes
-	ruff format --check api/ test_local.py
+	ruff format --check api/ tests/
 
-check: lint format-check  ## Run all checks (lint + format check)
+check: lint format-check  ## Run all backend checks (lint + format check)
+
+# === Frontend Commands ===
+
+lint-frontend:  ## Run ESLint for frontend
+	bun run lint
+
+lint-fix-frontend:  ## Run ESLint with auto-fix for frontend
+	bun run lint:fix
+
+format-frontend:  ## Format frontend code with Prettier
+	bun run format
+
+format-check-frontend:  ## Check frontend code formatting without making changes
+	bun run format:check
+
+type-check-frontend:  ## Run TypeScript type checking
+	bun run type-check
+
+check-frontend: lint-frontend format-check-frontend type-check-frontend  ## Run all frontend checks
+
+check-all: check check-frontend  ## Run all checks (backend + frontend)
 
 test:  ## Run local test
-	python test_local.py "Nike"
+	python tests/test_local.py "Nike"
 
 clean:  ## Clean cache and temporary files
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -37,8 +58,14 @@ dev:  ## Start development server (local)
 
 # === Docker Commands ===
 
-docker-build:  ## Build Docker image
+docker-build:  ## Build Docker images
 	docker-compose build
+
+docker-build-api:  ## Build only API Docker image
+	docker-compose build api
+
+docker-build-frontend:  ## Build only Frontend Docker image
+	docker-compose build frontend
 
 docker-up:  ## Start services with Docker Compose
 	docker-compose up -d
@@ -46,11 +73,23 @@ docker-up:  ## Start services with Docker Compose
 docker-down:  ## Stop services
 	docker-compose down
 
-docker-logs:  ## Show logs
+docker-logs:  ## Show logs (all services)
+	docker-compose logs -f
+
+docker-logs-api:  ## Show API logs
 	docker-compose logs -f api
+
+docker-logs-frontend:  ## Show Frontend logs
+	docker-compose logs -f frontend
 
 docker-restart:  ## Restart services
 	docker-compose restart
+
+docker-restart-api:  ## Restart API service
+	docker-compose restart api
+
+docker-restart-frontend:  ## Restart Frontend service
+	docker-compose restart frontend
 
 docker-clean:  ## Clean all containers, volumes, and images
 	docker-compose down -v --rmi all
@@ -58,6 +97,9 @@ docker-clean:  ## Clean all containers, volumes, and images
 docker-shell:  ## Open shell in API container
 	docker-compose exec api /bin/bash
 
+docker-shell-frontend:  ## Open shell in Frontend container
+	docker-compose exec frontend /bin/sh
+
 docker-test:  ## Run tests in container
-	docker-compose exec api python test_local.py "Nike"
+	docker-compose exec api python tests/test_local.py "Nike"
 

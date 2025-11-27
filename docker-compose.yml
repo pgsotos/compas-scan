@@ -25,7 +25,7 @@ services:
     volumes:
       # Mount code for development hot-reload
       - ./api:/app/api
-      - ./test_local.py:/app/test_local.py
+      - ./tests:/app/tests
     depends_on:
       redis:
         condition: service_healthy
@@ -36,6 +36,31 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+    networks:
+      - compas-network
+
+  # CompasScan Frontend Service (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: compas-scan-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DOCKER=true
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - compas-network
 

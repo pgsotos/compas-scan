@@ -71,7 +71,7 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={
             "status": "error",
-            "message": "Error interno del servidor procesando la solicitud.",
+            "message": "Internal server error processing the request.",
             "debug": str(exc) if not IS_PRODUCTION else None,
         },
     )
@@ -113,25 +113,25 @@ async def scan_competitors(
             try:
                 save_scan_results(brand, scan_report.model_dump())
             except Exception as db_error:
-                warning_msg = f"Persistencia en DB falló (no crítico): {str(db_error)}"
+                warning_msg = f"Database persistence failed (non-critical): {str(db_error)}"
                 print(f"⚠️ {warning_msg}")
-                warnings.append("No se pudo guardar en la base de datos (continuando con el escaneo)")
+                warnings.append("Could not save to database (continuing with scan)")
         else:
-            print("ℹ️ Supabase no configurada. Saltando persistencia.")
+            print("ℹ️ Supabase not configured. Skipping persistence.")
 
         # 3. Respuesta Exitosa
         return ScanResponse(
             status="success",
             target=brand,
             data=scan_report,
-            message="Escaneo completado exitosamente.",
+            message="Scan completed successfully.",
             warnings=warnings if warnings else None,
         )
 
     except Exception as e:
-        # Error crítico en la lógica de negocio
-        print(f"❌ Error Crítico en Escaneo: {e}")
-        raise HTTPException(status_code=500, detail="Error procesando el escaneo de competidores.")
+        # Critical error in business logic
+        print(f"❌ Critical Error in Scan: {e}")
+        raise HTTPException(status_code=500, detail="Error processing competitor scan.")
 
 
 @app.get("/health", response_model=HealthCheckResponse, summary="Health Check")

@@ -35,7 +35,7 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
 - `api/compas_core.py`: Main orchestrator. Decides whether to use AI or traditional search.
 - `api/gemini_service.py`: Encapsulated module for all AI interactions.
 - `api/constants.py`: ALL static lists (`STOP_WORDS`, `FAMOUS_DOMAINS`, `HEADERS`) must live here.
-- `test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
+- `tests/test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
 
 ## 4. Business Logic (The "Brain")
 The goal is to classify competitors into two types using a Hybrid approach (AI > Web):
@@ -66,7 +66,7 @@ Before writing code or applying fixes, you MUST follow this sequence:
     - Bug Fix -> `fix/name`
     - Refactor -> `refactor/name`
 3.  **Apply Changes:** Write the code only after the branch is active.
-4.  **Test:** Run `uv run python test_local.py "Brand"` to verify.
+4.  **Test:** Run `uv run python tests/test_local.py "Brand"` to verify.
 5.  **📝 UPDATE ROADMAP:** If completing a Roadmap item, update `.cursorrules` to mark it as `[Done]` and move `(Current)` to the next item BEFORE committing.
 6.  **Commit & Push:** Generate standard git commands (include .cursorrules if roadmap was updated).
 7.  **Create PR:** Generate `gh pr create --base develop ...`.

@@ -20,7 +20,7 @@ async def get_competitors_from_gemini(brand_name: str) -> list[CompetitorCandida
     Usa caché con TTL de 24h si está disponible.
     """
     if not api_key:
-        print("⚠️ GEMINI_API_KEY no encontrada. Saltando consulta a IA.")
+        print("⚠️ GEMINI_API_KEY not found. Skipping AI query.")
         return []
 
     # Check cache first
@@ -30,37 +30,37 @@ async def get_competitors_from_gemini(brand_name: str) -> list[CompetitorCandida
         try:
             return [CompetitorCandidate(**item) for item in cached]
         except Exception as e:
-            print(f"⚠️  Error deserializando cache: {e}")
+            print(f"⚠️  Error deserializing cache: {e}")
 
-    print(f"🤖 Consultando a Gemini sobre competidores de: {brand_name}...")
+    print(f"🤖 Querying Gemini about competitors of: {brand_name}...")
 
     model = genai.GenerativeModel("gemini-2.0-flash")
 
     prompt = f"""
-    Actúa como un experto en Inteligencia de Mercado y Competencia Digital.
-    Analiza la marca: "{brand_name}".
+    Act as an expert in Market Intelligence and Digital Competition.
+    Analyze the brand: "{brand_name}".
 
-    Tu tarea es identificar sus competidores directos e indirectos y devolver una respuesta ESTRICTAMENTE en formato JSON.
+    Your task is to identify its direct and indirect competitors and return a response STRICTLY in JSON format.
 
-    Reglas de Negocio:
-    1. HDA (High Domain Authority): Competidores masivos, líderes de industria o marcas muy reconocidas.
-    2. LDA (Low Domain Authority): Competidores de nicho, startups emergentes o alternativas específicas.
-    3. EXCLUYE: Agregadores (Capterra, G2), sitios de noticias (CNET, Forbes), foros (Reddit) y subdominios de la propia marca.
-    4. VALIDACIÓN: Solo incluye competidores reales con sitio web activo.
+    Business Rules:
+    1. HDA (High Domain Authority): Massive competitors, industry leaders, or highly recognized brands.
+    2. LDA (Low Domain Authority): Niche competitors, emerging startups, or specific alternatives.
+    3. EXCLUDE: Aggregators (Capterra, G2), news sites (CNET, Forbes), forums (Reddit), and subdomains of the brand itself.
+    4. VALIDATION: Only include real competitors with active websites.
 
-    Formato de Salida JSON (Array de objetos):
+    JSON Output Format (Array of objects):
     [
         {{
-            "name": "NombreCompetidor",
-            "url": "https://www.dominiooficial.com",
-            "type": "HDA" (o "LDA"),
-            "description": "Breve justificación de por qué es competidor (ej. 'Competidor directo en streaming de video')."
+            "name": "CompetitorName",
+            "url": "https://www.officialdomain.com",
+            "type": "HDA" (or "LDA"),
+            "description": "Brief justification of why it is a competitor (e.g., 'Direct competitor in video streaming')."
         }},
         ...
     ]
 
-    Dame al menos 5 competidores HDA y 3 competidores LDA.
-    IMPORTANTE: Devuelve SOLO el JSON, sin markdown, sin explicaciones extra.
+    Provide at least 5 HDA competitors and 3 LDA competitors.
+    IMPORTANT: Return ONLY the JSON, no markdown, no extra explanations.
     """
 
     try:
@@ -100,5 +100,5 @@ async def get_competitors_from_gemini(brand_name: str) -> list[CompetitorCandida
         print(f"❌ Error parsing Gemini JSON response: {je}")
         return []
     except Exception as e:
-        print(f"❌ Error consultando a Gemini: {e}")
+        print(f"❌ Error querying Gemini: {e}")
         return []

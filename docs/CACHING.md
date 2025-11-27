@@ -14,11 +14,11 @@ CompasScan now includes intelligent Redis-based caching to reduce API calls, imp
 
 ## 📊 Cached Operations
 
-| Operation | TTL | Environment Variable | Default |
-|-----------|-----|---------------------|---------|
-| **Gemini AI Results** | 24 hours | `REDIS_TTL_GEMINI` | 86400s |
-| **Google Search** | 1 hour | `REDIS_TTL_GOOGLE` | 3600s |
-| **Brand Context** | 6 hours | `REDIS_TTL_CONTEXT` | 21600s |
+| Operation             | TTL      | Environment Variable | Default |
+| --------------------- | -------- | -------------------- | ------- |
+| **Gemini AI Results** | 24 hours | `REDIS_TTL_GEMINI`   | 86400s  |
+| **Google Search**     | 1 hour   | `REDIS_TTL_GOOGLE`   | 3600s   |
+| **Brand Context**     | 6 hours  | `REDIS_TTL_CONTEXT`  | 21600s  |
 
 ## 🏗️ Architecture
 
@@ -110,6 +110,7 @@ redis-cli ping  # Should return "PONG"
 ```
 
 Update `.env`:
+
 ```bash
 REDIS_URL=redis://localhost:6379
 ```
@@ -194,29 +195,33 @@ await cache.close()
 **Problem**: `⚠️ Error conectando a Redis: [Errno 111] Connection refused`
 
 **Solutions**:
+
 1. Check if Redis is running:
+
    ```bash
    # Docker
    docker ps | grep redis
-   
+
    # Local
    redis-cli ping
    ```
 
 2. Verify `REDIS_URL` in `.env`:
+
    ```bash
    # Docker
    REDIS_URL=redis://redis:6379
-   
+
    # Local
    REDIS_URL=redis://localhost:6379
    ```
 
 3. Check Redis logs:
+
    ```bash
    # Docker
    docker logs compas-redis
-   
+
    # Local
    tail -f /usr/local/var/log/redis.log
    ```
@@ -226,16 +231,19 @@ await cache.close()
 **Problem**: Always seeing "Cache MISS" even for repeated requests
 
 **Solutions**:
+
 1. Check if `REDIS_URL` is set:
+
    ```bash
    echo $REDIS_URL
    ```
 
 2. Verify cache is enabled:
+
    ```python
    # In logs, you should see:
    ✅ Redis conectado exitosamente.
-   
+
    # NOT:
    ℹ️  Redis no configurado. Cache deshabilitado.
    ```
@@ -252,7 +260,9 @@ await cache.close()
 **Problem**: Cache entries expire too quickly or never expire
 
 **Solutions**:
+
 1. Check environment variables:
+
    ```bash
    echo $REDIS_TTL_GEMINI
    echo $REDIS_TTL_GOOGLE
@@ -260,6 +270,7 @@ await cache.close()
    ```
 
 2. Verify TTL in Redis:
+
    ```bash
    redis-cli
    > TTL compas:gemini:abc123  # Should show remaining seconds
@@ -275,21 +286,21 @@ await cache.close()
 
 ### Before Caching (Baseline)
 
-| Operation | Time | API Calls | Cost |
-|-----------|------|-----------|------|
-| Brand Context | ~500ms | 1 Google | $0.001 |
-| Gemini Analysis | ~1500ms | 1 Gemini | $0.002 |
-| Google Searches | ~800ms | 5 Google | $0.005 |
-| **Total** | **~2.8s** | **7 calls** | **$0.008** |
+| Operation       | Time      | API Calls   | Cost       |
+| --------------- | --------- | ----------- | ---------- |
+| Brand Context   | ~500ms    | 1 Google    | $0.001     |
+| Gemini Analysis | ~1500ms   | 1 Gemini    | $0.002     |
+| Google Searches | ~800ms    | 5 Google    | $0.005     |
+| **Total**       | **~2.8s** | **7 calls** | **$0.008** |
 
 ### With Caching (Cache HIT)
 
-| Operation | Time | API Calls | Cost |
-|-----------|------|-----------|------|
-| Brand Context | ~50ms | 0 (cached) | $0.000 |
-| Gemini Analysis | ~50ms | 0 (cached) | $0.000 |
-| Google Searches | N/A | Skipped | $0.000 |
-| **Total** | **~100ms** | **0 calls** | **$0.000** |
+| Operation       | Time       | API Calls   | Cost       |
+| --------------- | ---------- | ----------- | ---------- |
+| Brand Context   | ~50ms      | 0 (cached)  | $0.000     |
+| Gemini Analysis | ~50ms      | 0 (cached)  | $0.000     |
+| Google Searches | N/A        | Skipped     | $0.000     |
+| **Total**       | **~100ms** | **0 calls** | **$0.000** |
 
 ### Improvement Metrics
 
@@ -309,7 +320,7 @@ await cache.close()
    - ✅ Safe: Competitor lists, URLs, descriptions
    - ⚠️ Caution: Don't cache API keys or tokens
 
-3. **Data Persistence**: 
+3. **Data Persistence**:
    - Redis data survives container restarts (via volumes)
    - Use `FLUSHALL` carefully in production
 
@@ -355,4 +366,3 @@ curl http://localhost:8000/health
 
 **Roadmap Status**: ✅ Item #6 Complete  
 **Next**: Item #7 - Frontend (Next.js + Tailwind UI)
-
