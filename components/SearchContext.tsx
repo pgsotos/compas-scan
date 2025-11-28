@@ -12,7 +12,9 @@ const STOP_WORDS = new Set([
   "the", "of", "to", "and", "a", "in", "is", "it", "you", "that", "he", "was", "for", "on", "are", "with",
   "as", "i", "his", "they", "be", "at", "one", "have", "this", "from", "or", "had", "by", "not", "but",
   "de", "en", "como", "sitios", "marcas", "alternativas", "related", "similar", "brands", "competitors",
-  "competidores", "services", "like"
+  "competidores", "services", "like",
+  // Dominios comunes
+  "com", "net", "org", "www", "http", "https"
 ]);
 
 /**
