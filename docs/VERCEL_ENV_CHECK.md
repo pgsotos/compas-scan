@@ -111,9 +111,7 @@ grep REDIS_URL .env | cut -d'=' -f2
 
 ```bash
 # Verificar que el backend responde
-# NOTA: El endpoint puede estar en /api/health o /health dependiendo del routing
 curl https://compas-scan-dev.vercel.app/api/health | jq
-curl https://compas-scan-dev.vercel.app/health | jq
 
 # Verificar que el frontend carga
 curl -I https://compas-scan-dev.vercel.app
