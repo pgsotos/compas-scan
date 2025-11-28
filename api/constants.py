@@ -314,9 +314,18 @@ LOCAL_BOOST_KEYWORDS = {
     "mexico", "mexicano", "mexicana", "ciudad de mexico",
     "colombia", "colombiano", "colombiana", "bogota",
     "peru", "peruano", "peruana", "lima",
-    "españa", "español", "española", "madrid", "barcelona",
     "brasil", "brasileño", "brasileña", "sao paulo",
+    # Europa
+    "españa", "español", "española", "madrid", "barcelona",
+    "germany", "german", "deutsch", "deutschland", "berlin", "munich",
+    "france", "french", "français", "paris", "lyon",
+    "italy", "italian", "italiano", "italia", "rome", "milan",
+    # Asia
+    "japan", "japanese", "日本", "tokyo", "osaka",
+    "china", "chinese", "中国", "beijing", "shanghai",
+    "india", "indian", "भारत", "delhi", "mumbai",
+    "korea", "korean", "한국", "seoul",
     # Términos indicadores de localidad general
     "local", "nacional", "region", "regional", "pais",
-    "country", "nationwide", "domestic",
+    "country", "nationwide", "domestic", "local market",
 }
