@@ -561,7 +561,7 @@ async def _web_search_strategy(context: BrandContext) -> ScanReport:
     )
 
 
-async def run_compas_scan(user_input: str) -> ScanReport:
+async def run_compas_scan(user_input: str) -> tuple[ScanReport, BrandContext]:
     """
     Función principal de escaneo de competidores.
     
@@ -574,7 +574,7 @@ async def run_compas_scan(user_input: str) -> ScanReport:
         user_input: Brand name or URL to analyze
     
     Returns:
-        ScanReport with HDA/LDA competitors and discarded candidates
+        Tuple of (ScanReport, BrandContext) with competitors and search context
     """
     print(f"🚀 Starting CompasScan 2.0 (AI-First) for: {user_input}...\n")
     
@@ -584,7 +584,8 @@ async def run_compas_scan(user_input: str) -> ScanReport:
     # 2. Try AI strategy first
     ai_result = await _try_ai_strategy(context)
     if ai_result:
-        return ai_result
+        return ai_result, context
     
     # 3. Fallback to web search strategy
-    return await _web_search_strategy(context)
+    web_result = await _web_search_strategy(context)
+    return web_result, context
