@@ -46,15 +46,11 @@ async def main():
 
     # 3. Generar el Artefacto Local (results.json)
     try:
-        warnings = [] if success or os.environ.get("SUPABASE_URL") else ["Supabase no configurada"]
-
         # Convert Pydantic ScanReport to dict for JSON serialization
+        # Formato minimalista: solo target y data
         final_output = {
-            "status": "success",
             "target": brand_to_test,
             "data": report.model_dump(),
-            "message": "Escaneo completado exitosamente (Generado localmente).",
-            "warnings": warnings if warnings else None,
         }
 
         with open("results.json", "w", encoding="utf-8") as f:
