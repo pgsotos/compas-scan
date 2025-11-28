@@ -288,7 +288,7 @@ async def run_compas_scan(user_input: str) -> ScanReport:
     discarded_candidates: list[DiscardedCandidate] = []
 
     # 1. ESTRATEGIA IA (Gemini)
-    ai_candidates = await get_competitors_from_gemini(context.name)
+    ai_candidates = await get_competitors_from_gemini(context)
     if ai_candidates:
         print("✨ Usando resultados de Gemini.")
         for cand in ai_candidates:
