@@ -381,19 +381,30 @@ def _generate_search_queries(context: BrandContext) -> list[str]:
         return geo_queries + general_queries
     
     # Queries tradicionales si no hay país detectado
-    # Si hay keywords del sitio, úsalos
-    if context.keywords and len(context.keywords) >= 2:
-        kw_query = f"{' '.join(context.keywords[:2])} services like {context.name}"
-    else:
-        # Fallback: usar el nombre del dominio para inferir industria
-        kw_query = f"streaming video services like {context.name}"
-    
-    return [
+    base_queries = [
         f"related:{get_root_domain(context.url)}",
         f"similar brands to {context.name}",
         f"{context.name} competitors",
-        kw_query,
     ]
+    
+    # Si hay keywords del sitio, úsalos para una query específica
+    if context.keywords and len(context.keywords) >= 2:
+        # Filtrar keywords comunes/stopwords
+        relevant_kws = [kw for kw in context.keywords[:3] if kw.lower() not in {'the', 'and', 'or', 'of', 'to', 'in'}]
+        if relevant_kws:
+            kw_query = f"{' '.join(relevant_kws[:2])} like {context.name}"
+            base_queries.append(kw_query)
+    elif context.industry_description:
+        # Intentar extraer términos relevantes del description
+        desc_words = context.industry_description.lower().split()
+        # Filtrar stopwords y tomar palabras relevantes
+        relevant_words = [w for w in desc_words if len(w) > 4 and w not in {'about', 'where', 'their', 'would', 'could', 'should'}][:2]
+        if relevant_words:
+            desc_query = f"{' '.join(relevant_words)} like {context.name}"
+            base_queries.append(desc_query)
+    
+    # Si no tenemos información específica, solo usamos queries genéricas
+    return base_queries
 
 
 async def _try_ai_strategy(context: BrandContext) -> Optional[ScanReport]:
