@@ -23,6 +23,10 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
   - ❌ DIRECT MERGE to `develop`, `staging`, or `main` locally is FORBIDDEN.
   - ✅ ALWAYS create a Pull Request (PR) from working branch.
   - ✅ Flow: `feature/*` → `develop` → `staging` → `main`
+  - ✅ **ALL promotions require PRs:**
+    - `feature/*` → `develop` (via PR)
+    - `develop` → `staging` (via PR)
+    - `staging` → `main` (via PR)
   - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
 - **Promotion Strategy:**
   - `develop`: Continuous integration (auto-deploy on merge)
@@ -35,7 +39,7 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
 - `api/compas_core.py`: Main orchestrator. Decides whether to use AI or traditional search.
 - `api/gemini_service.py`: Encapsulated module for all AI interactions.
 - `api/constants.py`: ALL static lists (`STOP_WORDS`, `FAMOUS_DOMAINS`, `HEADERS`) must live here.
-- `test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
+- `tests/test_local.py`: Main test script. Must support CLI arguments and generate `results.json` locally (ignored by git).
 
 ## 4. Business Logic (The "Brain")
 The goal is to classify competitors into two types using a Hybrid approach (AI > Web):
@@ -60,17 +64,20 @@ The goal is to classify competitors into two types using a Hybrid approach (AI >
 ## 6. Agent Protocol (MANDATORY) 🛡️
 Before writing code or applying fixes, you MUST follow this sequence:
 
-1.  **Check Branch:** Verify current branch. If on `main`, `staging`, or `develop`, STOP.
+1.  **Check Branch:** Verify current branch. If on `main`, `staging`, or `develop`, STOP and create a new branch.
 2.  **Create Branch:** For any change, generate a command to create a specific branch:
     - New Feature -> `feature/name`
     - Bug Fix -> `fix/name`
     - Refactor -> `refactor/name`
 3.  **Apply Changes:** Write the code only after the branch is active.
-4.  **Test:** Run `uv run python test_local.py "Brand"` to verify.
+4.  **Test:** Run `uv run python tests/test_local.py "Brand"` to verify.
 5.  **📝 UPDATE ROADMAP:** If completing a Roadmap item, update `.cursorrules` to mark it as `[Done]` and move `(Current)` to the next item BEFORE committing.
 6.  **Commit & Push:** Generate standard git commands (include .cursorrules if roadmap was updated).
-7.  **Create PR:** Generate `gh pr create --base develop ...`.
-8.  **✋ STOP & ASK:** Do NOT merge automatically. Ask the user: *"PR created. Ready to merge into develop?"*. Only proceed if confirmed.
+7.  **Create PR:** 
+    - For working branches → `develop`: `gh pr create --base develop ...`
+    - For `develop` → `staging`: `gh pr create --base staging ...`
+    - For `staging` → `main`: `gh pr create --base main ...`
+8.  **✋ STOP & ASK:** Do NOT merge automatically. Ask the user: *"PR created. Ready to merge?"*. Only proceed if confirmed.
 
 ## 🗺️ Improvement Roadmap (Current Focus)
 Execute these improvements in order. **Check with user before moving to the next step.**
@@ -82,4 +89,5 @@ Execute these improvements in order. **Check with user before moving to the next
 5.  [Done] Dockerization.
 6.  [Done] Caching (Redis).
 6.5 [Done] Observability & MCP Integration (Logfire + Sentry + Brave Search).
-7.  **Frontend (Current):** Build a Next.js + Tailwind UI (Using **Bun** as package manager).
+7.  [Done] Frontend: Build a Next.js + Tailwind UI (Using **Bun** as package manager).
+8.  **(Current)** Code Quality & Refactoring: Refactor `run_compas_scan()` and improve code maintainability (see `docs/CODE_QUALITY_ANALYSIS.md`).

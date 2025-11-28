@@ -14,6 +14,7 @@ cp env.example .env
 ```
 
 Edita `.env` con tus credenciales reales:
+
 ```env
 GEMINI_API_KEY=your_actual_gemini_key
 GOOGLE_API_KEY=your_actual_google_key
@@ -35,11 +36,17 @@ docker-compose up -d
 ### 3. Verificar que Funcione
 
 ```bash
-# Health check
+# Health check API
 curl http://localhost:8000/health
 
-# Probar con una marca
+# Health check Frontend (a través de rewrite)
+curl http://localhost:3000/api/health
+
+# Probar con una marca (API directo)
 curl "http://localhost:8000/?brand=Nike"
+
+# Abrir Frontend en navegador
+open http://localhost:3000
 
 # Abrir documentación Swagger
 open http://localhost:8000/docs
@@ -50,17 +57,28 @@ open http://localhost:8000/docs
 ### Gestión de Servicios
 
 ```bash
-make docker-up         # Iniciar servicios en background
-make docker-down       # Detener servicios
-make docker-restart    # Reiniciar servicios
-make docker-logs       # Ver logs (Ctrl+C para salir)
+make docker-up              # Iniciar todos los servicios
+make docker-down            # Detener servicios
+make docker-restart        # Reiniciar todos los servicios
+make docker-logs           # Ver logs de todos los servicios
+make docker-logs-api       # Ver logs solo del API
+make docker-logs-frontend  # Ver logs solo del Frontend
+```
+
+### Builds Específicos
+
+```bash
+make docker-build          # Build de todos los servicios
+make docker-build-api      # Build solo del API
+make docker-build-frontend # Build solo del Frontend
 ```
 
 ### Desarrollo
 
 ```bash
-make docker-shell      # Abrir shell en el contenedor API
-make docker-test       # Ejecutar tests dentro del contenedor
+make docker-shell          # Abrir shell en el contenedor API
+make docker-shell-frontend # Abrir shell en el contenedor Frontend
+make docker-test           # Ejecutar tests dentro del contenedor
 ```
 
 ### Limpieza
@@ -74,17 +92,28 @@ make docker-clean      # Eliminar containers, volumes e imágenes
 ### Servicios Incluidos:
 
 #### 1. **API (Puerto 8000)**
+
 - FastAPI server con hot-reload
 - Montaje de volúmenes para desarrollo
 - Health check cada 30 segundos
 - Auto-restart en caso de fallo
 
-#### 2. **Redis (Puerto 6379)**
+#### 2. **Frontend (Puerto 3000)**
+
+- Next.js 16 con App Router
+- Build optimizado con standalone output
+- Proxy automático a API en `/api/*`
+- Health check cada 30 segundos
+- Auto-restart en caso de fallo
+
+#### 3. **Redis (Puerto 6379)**
+
 - Cache preparado para Roadmap Item #6
 - Persistencia de datos con volume
 - Health check con redis-cli ping
 
 ### Network:
+
 - Red Bridge `compas-network` para comunicación entre servicios
 
 ## 🔧 Desarrollo con Hot-Reload
@@ -93,11 +122,12 @@ El `docker-compose.yml` está configurado para desarrollo con hot-reload:
 
 ```yaml
 volumes:
-  - ./api:/app/api              # Cambios en código se reflejan inmediatamente
+  - ./api:/app/api # Cambios en código se reflejan inmediatamente
   - ./test_local.py:/app/test_local.py
 ```
 
 **Workflow:**
+
 1. Edita archivos localmente
 2. Los cambios se reflejan automáticamente en el contenedor
 3. Uvicorn detecta cambios y recarga el servidor
@@ -107,10 +137,15 @@ volumes:
 ### Health Check del API
 
 ```bash
+# Directo
 curl http://localhost:8000/health
+
+# A través del Frontend (rewrite)
+curl http://localhost:3000/api/health
 ```
 
 Respuesta esperada:
+
 ```json
 {
   "status": "healthy",
@@ -119,6 +154,15 @@ Respuesta esperada:
   "environment": "local"
 }
 ```
+
+### Health Check del Frontend
+
+```bash
+# Verificar que el frontend responde
+curl http://localhost:3000
+```
+
+Debería devolver HTML de la página principal.
 
 ### Health Check de Redis
 
@@ -131,19 +175,23 @@ Respuesta esperada: `PONG`
 ## 🐛 Troubleshooting
 
 ### Error: "Cannot connect to Docker daemon"
+
 ```bash
 # Asegúrate de que Docker Desktop esté corriendo
 open -a Docker
 ```
 
-### Error: "Port 8000 already in use"
+### Error: "Port 8000 already in use" o "Port 3000 already in use"
+
 ```bash
-# Detén otros servicios en ese puerto o cambia el puerto en docker-compose.yml
+# Detén otros servicios en esos puertos o cambia los puertos en docker-compose.yml
 docker-compose down
-lsof -ti:8000 | xargs kill -9
+lsof -ti:8000 | xargs kill -9  # API
+lsof -ti:3000 | xargs kill -9  # Frontend
 ```
 
 ### Reconstruir desde cero
+
 ```bash
 make docker-clean
 make docker-build
@@ -166,4 +214,3 @@ Para desplegar en producción:
 - ✅ No se copian archivos sensibles (.dockerignore)
 - ✅ Health checks para monitoreo
 - ✅ Variables de entorno desde .env (nunca en código)
-

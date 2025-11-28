@@ -18,18 +18,21 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+# Create non-root user first
+RUN useradd -m -u 1000 compas
+
+# Copy Python dependencies from builder to user's home
+COPY --from=builder /root/.local /home/compas/.local
 
 # Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/compas/.local/bin:$PATH
 
 # Copy application code
 COPY api/ ./api/
 COPY test_local.py .
 
-# Create non-root user for security
-RUN useradd -m -u 1000 compas && chown -R compas:compas /app
+# Set ownership
+RUN chown -R compas:compas /app /home/compas/.local
 USER compas
 
 # Expose port

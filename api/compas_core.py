@@ -19,7 +19,7 @@ from .constants import (
     STOP_WORDS,
 )
 from .gemini_service import get_competitors_from_gemini
-from .mcp_clients import brave_search
+from .search_clients import brave_search
 from .mocks import clean_url
 from .models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
 
@@ -52,7 +52,7 @@ async def get_brand_context(user_input: str) -> BrandContext:
         try:
             return BrandContext(**cached)
         except Exception as e:
-            print(f"⚠️  Error deserializando cache de contexto: {e}")
+            print(f"⚠️  Error deserializing context cache: {e}")
 
     name = user_input
     url = ""
@@ -272,15 +272,15 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
 
     # --- FASE 3: RESULTADO ---
     if is_hda:
-        return ClassificationResult(valid=True, type="HDA", justification=f"Competidor Directo. {', '.join(signals)}")
+        return ClassificationResult(valid=True, type="HDA", justification=f"Direct Competitor. {', '.join(signals)}")
     elif signals:
-        return ClassificationResult(valid=True, type="LDA", justification=f"Competidor de Nicho. {', '.join(signals)}")
+        return ClassificationResult(valid=True, type="LDA", justification=f"Niche Competitor. {', '.join(signals)}")
 
-    return ClassificationResult(valid=False, reason="Sin señales suficientes de competencia")
+    return ClassificationResult(valid=False, reason="Insufficient signals of competition")
 
 
 async def run_compas_scan(user_input: str) -> ScanReport:
-    print(f"🚀 Iniciando CompasScan 2.0 (AI-First) para: {user_input}...\n")
+    print(f"🚀 Starting CompasScan 2.0 (AI-First) for: {user_input}...\n")
     context = await get_brand_context(user_input)
 
     hda_competitors: list[Competitor] = []
@@ -308,7 +308,7 @@ async def run_compas_scan(user_input: str) -> ScanReport:
         )
 
     # 2. ESTRATEGIA WEB (Fallback)
-    print("⚠️ Fallback a Búsqueda Web (Señales)...")
+    print("⚠️ Fallback to Web Search (Signals)...")
     queries = [
         f"related:{get_root_domain(context.url)}",
         f"similar brands to {context.name}",
