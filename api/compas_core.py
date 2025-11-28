@@ -19,9 +19,9 @@ from .constants import (
     STOP_WORDS,
 )
 from .gemini_service import get_competitors_from_gemini
-from .search_clients import brave_search
 from .mocks import clean_url
 from .models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
+from .search_clients import brave_search
 
 
 def get_root_domain(url: str) -> str:
@@ -42,6 +42,29 @@ def extract_keywords_from_text(text: str, top_n: int = 5) -> list[str]:
     words = re.findall(r"\w+", text.lower())
     meaningful = [w for w in words if w not in STOP_WORDS and len(w) > 2 and not w.isdigit()]
     return [w for w, c in Counter(meaningful).most_common(top_n)]
+
+
+def clean_competitor_name(title: Optional[str]) -> str:
+    """Remove 'Official Site', 'Official', and similar suffixes from competitor names."""
+    if not title:
+        return ""
+    # Remove common suffixes
+    cleaned = title
+    suffixes = [
+        " - Official Site",
+        " Official Site",
+        " | Official Site",
+        " - Official",
+        " Official",
+        " | Official",
+        " Official Website",
+        " - Official Website",
+    ]
+    for suffix in suffixes:
+        if cleaned.endswith(suffix):
+            cleaned = cleaned[: -len(suffix)]
+            break
+    return cleaned.strip()
 
 
 async def get_brand_context(user_input: str) -> BrandContext:
@@ -211,14 +234,16 @@ async def search_direct_competitor(name: str) -> Optional[CompetitorCandidate]:
 
     if name in known:
         url = f"https://www.{known[name]}"
-        return CompetitorCandidate(link=url, clean_url=url, source="direct_search", title=f"{name} Official")
+        return CompetitorCandidate(link=url, clean_url=url, source="direct_search", title=name)
 
     # Búsqueda genérica
     res = await search_google_api(f"{name} official site", num=1)
     if res:
         link = res[0].get("link", "")
+        raw_title = res[0].get("title", "")
+        cleaned_title = clean_competitor_name(raw_title) if raw_title else name
         return CompetitorCandidate(
-            link=link, clean_url=clean_url(link), source="direct_search", title=res[0].get("title", "")
+            link=link, clean_url=clean_url(link), source="direct_search", title=cleaned_title
         )
     return None
 
@@ -293,10 +318,12 @@ async def run_compas_scan(user_input: str) -> ScanReport:
         print("✨ Usando resultados de Gemini.")
         for cand in ai_candidates:
             c_type = cand.gemini_type or "LDA"
+            # Clean the title to remove "Official Site" suffixes
+            cleaned_name = clean_competitor_name(cand.title) if cand.title else urlparse(cand.clean_url).netloc
             competitor = Competitor(
-                name=cand.title or urlparse(cand.clean_url).netloc,
+                name=cleaned_name or urlparse(cand.clean_url).netloc,
                 url=cand.clean_url,
-                justification=cand.snippet or "Identificado por IA",
+                justification=cand.snippet or "Identified by AI",
             )
             if c_type == "HDA":
                 hda_competitors.append(competitor)
@@ -336,10 +363,12 @@ async def run_compas_scan(user_input: str) -> ScanReport:
             link = clean_url(item.get("link", ""))
             if link not in seen:
                 seen.add(link)
+                raw_title = item.get("title", "")
+                cleaned_title = clean_competitor_name(raw_title) if raw_title else None
                 candidate = CompetitorCandidate(
                     link=item.get("link", ""),
                     clean_url=link,
-                    title=item.get("title"),
+                    title=cleaned_title,
                     snippet=item.get("snippet"),
                     source="search",
                 )
@@ -361,8 +390,11 @@ async def run_compas_scan(user_input: str) -> ScanReport:
         res = classify_competitor(cand, context)
 
         if res.valid:
+            # Use cleaned title if available, otherwise use domain
+            cleaned_name = clean_competitor_name(cand.title) if cand.title else None
+            competitor_name = cleaned_name or urlparse(cand.clean_url).netloc
             competitor = Competitor(
-                name=urlparse(cand.clean_url).netloc, url=cand.clean_url, justification=res.justification or ""
+                name=competitor_name, url=cand.clean_url, justification=res.justification or ""
             )
 
             if res.type == "HDA":
