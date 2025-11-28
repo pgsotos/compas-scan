@@ -352,37 +352,13 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
     return ClassificationResult(valid=False, reason="Insufficient signals of competition")
 
 
-async def run_compas_scan(user_input: str) -> ScanReport:
-    print(f"🚀 Starting CompasScan 2.0 (AI-First) for: {user_input}...\n")
-    context = await get_brand_context(user_input)
-
-    hda_competitors: list[Competitor] = []
-    lda_competitors: list[Competitor] = []
-    discarded_candidates: list[DiscardedCandidate] = []
-
-    # 1. ESTRATEGIA IA (Gemini) con contexto geográfico completo
-    ai_candidates = await get_competitors_from_gemini(context)
-    if ai_candidates:
-        print("✨ Usando resultados de Gemini.")
-        for cand in ai_candidates:
-            c_type = cand.gemini_type or "LDA"
-            competitor = Competitor(
-                name=cand.title or urlparse(cand.clean_url).netloc,
-                url=cand.clean_url,
-                justification=cand.snippet or "Identificado por IA",
-            )
-            if c_type == "HDA":
-                hda_competitors.append(competitor)
-            else:
-                lda_competitors.append(competitor)
-
-        return ScanReport(
-            HDA_Competitors=hda_competitors, LDA_Competitors=lda_competitors, Discarded_Candidates=discarded_candidates
-        )
-
-    # 2. ESTRATEGIA WEB (Fallback)
-    print("⚠️ Fallback to Web Search (Signals)...")
+def _generate_search_queries(context: BrandContext) -> list[str]:
+    """
+    Genera queries dinámicas de búsqueda basadas en el contexto de la marca.
     
+    Si hay país detectado, prioriza queries geolocalizadas.
+    Si no, usa queries genéricas.
+    """
     # 🌍 GEO-TARGETING: Si hay país detectado, priorizar queries geolocalizadas
     if context.country:
         print(f"🎯 Activando búsqueda geolocalizada para: {context.country}")
@@ -398,24 +374,66 @@ async def run_compas_scan(user_input: str) -> ScanReport:
             f"similar brands to {context.name}",
             f"{context.name} competitors",
         ]
-        queries = geo_queries + general_queries
-    else:
-        # Queries tradicionales si no hay país detectado
-        queries = [
-            f"related:{get_root_domain(context.url)}",
-            f"similar brands to {context.name}",
-            f"{context.name} competitors",
-            f"{' '.join(context.keywords[:2])} services like {context.name}",
-        ]
+        return geo_queries + general_queries
+    
+    # Queries tradicionales si no hay país detectado
+    return [
+        f"related:{get_root_domain(context.url)}",
+        f"similar brands to {context.name}",
+        f"{context.name} competitors",
+        f"{' '.join(context.keywords[:2])} services like {context.name}",
+    ]
 
+
+async def _try_ai_strategy(context: BrandContext) -> Optional[ScanReport]:
+    """
+    Estrategia AI-First: Consulta a Gemini para obtener competidores.
+    
+    Returns:
+        ScanReport si Gemini devuelve resultados, None si falla o no está disponible.
+    """
+    ai_candidates = await get_competitors_from_gemini(context)
+    if not ai_candidates:
+        return None
+    
+    print("✨ Usando resultados de Gemini.")
+    hda_competitors: list[Competitor] = []
+    lda_competitors: list[Competitor] = []
+    
+    for cand in ai_candidates:
+        c_type = cand.gemini_type or "LDA"
+        competitor = Competitor(
+            name=cand.title or urlparse(cand.clean_url).netloc,
+            url=cand.clean_url,
+            justification=cand.snippet or "Identificado por IA",
+        )
+        if c_type == "HDA":
+            hda_competitors.append(competitor)
+        else:
+            lda_competitors.append(competitor)
+    
+    return ScanReport(
+        HDA_Competitors=hda_competitors,
+        LDA_Competitors=lda_competitors,
+        Discarded_Candidates=[]
+    )
+
+
+async def _search_initial_candidates(queries: list[str], context: BrandContext) -> tuple[list[CompetitorCandidate], set[str]]:
+    """
+    Realiza búsqueda inicial concurrente con las queries proporcionadas.
+    
+    Returns:
+        Tupla de (candidatos encontrados, nombres descubiertos para búsqueda directa)
+    """
     raw_candidates: list[CompetitorCandidate] = []
     seen: set[str] = set()
     discovered_names: set[str] = set()
-
-    # A. Búsqueda Inicial (Concurrente)
+    
+    # Búsqueda Inicial (Concurrente)
     search_tasks = [search_google_api(q, num=10) for q in queries]
     search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
-
+    
     for items in search_results:
         if items is None or isinstance(items, Exception):
             continue
@@ -424,7 +442,7 @@ async def run_compas_scan(user_input: str) -> ScanReport:
             full_text = f"{item.get('title', '')} {item.get('snippet', '')}"
             extracted = extract_competitor_names(full_text, context.name)
             discovered_names.update(extracted)
-
+            
             link = clean_url(item.get("link", ""))
             if link not in seen:
                 seen.add(link)
@@ -436,38 +454,137 @@ async def run_compas_scan(user_input: str) -> ScanReport:
                     source="search",
                 )
                 raw_candidates.append(candidate)
+    
+    return raw_candidates, discovered_names
 
-    # B. Búsqueda Directa de Nombres Descubiertos (Concurrente)
-    if discovered_names:
-        print(f"🔍 Investigando nombres descubiertos: {list(discovered_names)[:5]}...")
-        direct_tasks = [search_direct_competitor(name) for name in list(discovered_names)[:5]]
-        direct_results = await asyncio.gather(*direct_tasks, return_exceptions=True)
 
-        for direct in direct_results:
-            if direct and not isinstance(direct, Exception) and direct.clean_url not in seen:
-                seen.add(direct.clean_url)
-                raw_candidates.append(direct)
+async def _search_discovered_competitors(discovered_names: set[str], seen: set[str]) -> list[CompetitorCandidate]:
+    """
+    Busca directamente los sitios oficiales de competidores descubiertos.
+    
+    Args:
+        discovered_names: Nombres de competidores extraídos de snippets
+        seen: Set de URLs ya procesadas para evitar duplicados
+    
+    Returns:
+        Lista de candidatos encontrados directamente
+    """
+    additional_candidates: list[CompetitorCandidate] = []
+    
+    if not discovered_names:
+        return additional_candidates
+    
+    print(f"🔍 Investigando nombres descubiertos: {list(discovered_names)[:5]}...")
+    direct_tasks = [search_direct_competitor(name) for name in list(discovered_names)[:5]]
+    direct_results = await asyncio.gather(*direct_tasks, return_exceptions=True)
+    
+    for direct in direct_results:
+        if direct and not isinstance(direct, Exception) and direct.clean_url not in seen:
+            seen.add(direct.clean_url)
+            additional_candidates.append(direct)
+    
+    return additional_candidates
 
-    # C. Clasificación
-    for cand in raw_candidates:
+
+def _classify_all_candidates(
+    candidates: list[CompetitorCandidate],
+    context: BrandContext
+) -> tuple[list[Competitor], list[Competitor], list[DiscardedCandidate]]:
+    """
+    Clasifica todos los candidatos en HDA, LDA o descartados.
+    
+    Returns:
+        Tupla de (HDA competitors, LDA competitors, discarded candidates)
+    """
+    hda_competitors: list[Competitor] = []
+    lda_competitors: list[Competitor] = []
+    discarded_candidates: list[DiscardedCandidate] = []
+    
+    for cand in candidates:
         res = classify_competitor(cand, context)
-
+        
         if res.valid:
             competitor = Competitor(
-                name=urlparse(cand.clean_url).netloc, url=cand.clean_url, justification=res.justification or ""
+                name=urlparse(cand.clean_url).netloc,
+                url=cand.clean_url,
+                justification=res.justification or ""
             )
-
+            
             if res.type == "HDA":
                 hda_competitors.append(competitor)
             else:
                 lda_competitors.append(competitor)
         else:
-            discarded = DiscardedCandidate(url=cand.clean_url, reason=res.reason or "Unknown reason")
+            discarded = DiscardedCandidate(
+                url=cand.clean_url,
+                reason=res.reason or "Unknown reason"
+            )
             discarded_candidates.append(discarded)
+    
+    return hda_competitors, lda_competitors, discarded_candidates
 
-    # Limitar resultados
+
+async def _web_search_strategy(context: BrandContext) -> ScanReport:
+    """
+    Estrategia de búsqueda web con clasificación basada en señales.
+    
+    Flow:
+    1. Generar queries dinámicas (geolocalizadas si aplica)
+    2. Búsqueda inicial concurrente
+    3. Búsqueda directa de nombres descubiertos
+    4. Clasificación de todos los candidatos
+    5. Construcción del reporte final
+    """
+    print("⚠️ Fallback to Web Search (Signals)...")
+    
+    # 1. Generar queries
+    queries = _generate_search_queries(context)
+    
+    # 2. Búsqueda inicial
+    raw_candidates, discovered_names = await _search_initial_candidates(queries, context)
+    
+    # 3. Búsqueda directa
+    seen = {c.clean_url for c in raw_candidates}
+    direct_candidates = await _search_discovered_competitors(discovered_names, seen)
+    raw_candidates.extend(direct_candidates)
+    
+    # 4. Clasificación
+    hda_competitors, lda_competitors, discarded_candidates = _classify_all_candidates(
+        raw_candidates, context
+    )
+    
+    # 5. Limitar resultados y retornar reporte
     return ScanReport(
         HDA_Competitors=hda_competitors[:5],
         LDA_Competitors=lda_competitors[:5],
         Discarded_Candidates=discarded_candidates[:5],
     )
+
+
+async def run_compas_scan(user_input: str) -> ScanReport:
+    """
+    Función principal de escaneo de competidores.
+    
+    Strategy:
+    1. Get brand context (name, url, keywords, country)
+    2. Try AI-First strategy (Gemini)
+    3. Fallback to web search strategy if AI fails
+    
+    Args:
+        user_input: Brand name or URL to analyze
+    
+    Returns:
+        ScanReport with HDA/LDA competitors and discarded candidates
+    """
+    print(f"🚀 Starting CompasScan 2.0 (AI-First) for: {user_input}...\n")
+    
+    # 1. Get brand context
+    context = await get_brand_context(user_input)
+    
+    # 2. Try AI strategy first
+    ai_result = await _try_ai_strategy(context)
+    if ai_result:
+        return ai_result
+    
+    # 3. Fallback to web search strategy
+    return await _web_search_strategy(context)
