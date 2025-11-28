@@ -128,7 +128,7 @@ async def scan_competitors(
 
     try:
         # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
-        scan_report = await run_compas_scan(brand)
+        scan_report, brand_context = await run_compas_scan(brand)
 
         # 2. Persistencia Opcional (No crítica)
         if os.environ.get("SUPABASE_URL"):
@@ -148,6 +148,7 @@ async def scan_competitors(
             data=scan_report,
             message="Scan completed successfully.",
             warnings=warnings if warnings else None,
+            brand_context=brand_context,
         )
 
     except Exception as e:
@@ -181,7 +182,7 @@ async def scan_competitors_root(
     import os
     
     warnings: list[str] = []
-    scan_report = await run_compas_scan(brand)
+    scan_report, brand_context = await run_compas_scan(brand)
     
     if os.environ.get("SUPABASE_URL"):
         try:
@@ -196,6 +197,7 @@ async def scan_competitors_root(
         data=scan_report,
         message="Scan completed successfully.",
         warnings=warnings if warnings else None,
+        brand_context=brand_context,
     )
 
 @app.get("/health", response_model=HealthCheckResponse, include_in_schema=False)

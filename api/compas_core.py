@@ -357,15 +357,19 @@ def _generate_search_queries(context: BrandContext) -> list[str]:
     Genera queries dinámicas de búsqueda basadas en el contexto de la marca.
     
     Si hay país detectado, prioriza queries geolocalizadas.
-    Si no, usa queries genéricas.
+    Si no, usa queries genéricas con keywords relevantes.
     """
     # 🌍 GEO-TARGETING: Si hay país detectado, priorizar queries geolocalizadas
     if context.country:
         print(f"🎯 Activando búsqueda geolocalizada para: {context.country}")
+        # Extraer keywords útiles (omitir el país)
+        useful_kws = [kw for kw in context.keywords if kw.lower() != context.country.lower()][:2]
+        kw_string = ' '.join(useful_kws) if useful_kws else 'servicios'
+        
         # Queries con prioridad geográfica (aparecen PRIMERO)
         geo_queries = [
             f"competidores de {context.name} en {context.country}",
-            f"{context.keywords[1] if len(context.keywords) > 1 else 'marcas'} {context.keywords[2] if len(context.keywords) > 2 else ''} {context.country}",
+            f"{kw_string} {context.country}",
             f"sitios como {context.name} {context.country}",
             f"{context.name} alternativas {context.country}",
         ]
@@ -377,11 +381,18 @@ def _generate_search_queries(context: BrandContext) -> list[str]:
         return geo_queries + general_queries
     
     # Queries tradicionales si no hay país detectado
+    # Si hay keywords del sitio, úsalos
+    if context.keywords and len(context.keywords) >= 2:
+        kw_query = f"{' '.join(context.keywords[:2])} services like {context.name}"
+    else:
+        # Fallback: usar el nombre del dominio para inferir industria
+        kw_query = f"streaming video services like {context.name}"
+    
     return [
         f"related:{get_root_domain(context.url)}",
         f"similar brands to {context.name}",
         f"{context.name} competitors",
-        f"{' '.join(context.keywords[:2])} services like {context.name}",
+        kw_query,
     ]
 
 
@@ -539,6 +550,8 @@ async def _web_search_strategy(context: BrandContext) -> ScanReport:
     
     # 1. Generar queries
     queries = _generate_search_queries(context)
+    # Guardar las queries generadas en el context
+    context.search_queries = queries
     
     # 2. Búsqueda inicial
     raw_candidates, discovered_names = await _search_initial_candidates(queries, context)
@@ -561,7 +574,7 @@ async def _web_search_strategy(context: BrandContext) -> ScanReport:
     )
 
 
-async def run_compas_scan(user_input: str) -> ScanReport:
+async def run_compas_scan(user_input: str) -> tuple[ScanReport, BrandContext]:
     """
     Función principal de escaneo de competidores.
     
@@ -574,17 +587,22 @@ async def run_compas_scan(user_input: str) -> ScanReport:
         user_input: Brand name or URL to analyze
     
     Returns:
-        ScanReport with HDA/LDA competitors and discarded candidates
+        Tuple of (ScanReport, BrandContext) with competitors and search context
     """
     print(f"🚀 Starting CompasScan 2.0 (AI-First) for: {user_input}...\n")
     
     # 1. Get brand context
     context = await get_brand_context(user_input)
     
-    # 2. Try AI strategy first
+    # 2. Generate search queries (para mostrar en UI incluso si usamos AI)
+    queries = _generate_search_queries(context)
+    context.search_queries = queries
+    
+    # 3. Try AI strategy first
     ai_result = await _try_ai_strategy(context)
     if ai_result:
-        return ai_result
+        return ai_result, context
     
-    # 3. Fallback to web search strategy
-    return await _web_search_strategy(context)
+    # 4. Fallback to web search strategy
+    web_result = await _web_search_strategy(context)
+    return web_result, context

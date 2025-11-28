@@ -28,7 +28,7 @@ async def main():
     print("-" * 50)
 
     # 1. Ejecutar la lógica de escaneo (ahora async)
-    report = await compas_core.run_compas_scan(brand_to_test)
+    report, brand_context = await compas_core.run_compas_scan(brand_to_test)
 
     # 2. Guardar el reporte en Supabase (Opcional)
     success = False
@@ -46,17 +46,21 @@ async def main():
 
     # 3. Generar el Artefacto Local (results.json)
     try:
-        # Convert Pydantic ScanReport to dict for JSON serialization
-        # Formato minimalista: solo target y data
+        # Convert Pydantic models to dict for JSON serialization
+        # Incluir también el brand_context para testing completo
         final_output = {
             "target": brand_to_test,
             "data": report.model_dump(),
+            "brand_context": brand_context.model_dump(),
         }
 
         with open("results.json", "w", encoding="utf-8") as f:
             json.dump(final_output, f, indent=2, ensure_ascii=False)
 
         print("📄 Archivo 'results.json' actualizado con los últimos resultados.")
+        print(f"🔑 Keywords extraídos: {', '.join(brand_context.keywords)}")
+        if brand_context.country:
+            print(f"🌍 País detectado: {brand_context.country} (.{brand_context.tld})")
         print(
             f"\n✅ TEST COMPLETADO: {len(report.HDA_Competitors)} HDA, {len(report.LDA_Competitors)} LDA encontrados."
         )

@@ -6,6 +6,7 @@ import CompetitorList from "@/components/CompetitorList";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
 import ResultsSummary from "@/components/ResultsSummary";
+import SearchContext from "@/components/SearchContext";
 import ExportButton from "@/components/ExportButton";
 import Footer from "@/components/Footer";
 import { scanCompetitors, type ScanResponse } from "@/lib/api";
@@ -78,6 +79,11 @@ export default function Home() {
           {/* Results */}
           {searchResult?.data && !isLoading && (
             <div className="space-y-4 sm:space-y-6 animate-fade-in">
+              {/* Search Context (Keywords) */}
+              {searchResult.brand_context && (
+                <SearchContext context={searchResult.brand_context} />
+              )}
+
               {/* Summary and Export */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <div className="flex-1">
