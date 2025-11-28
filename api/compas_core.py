@@ -15,8 +15,10 @@ from .constants import (
     IGNORED_DOMAINS,
     IGNORED_SUBDOMAINS,
     IGNORED_TERMS,
+    LOCAL_BOOST_KEYWORDS,
     NEWS_TECH_DOMAINS,
     STOP_WORDS,
+    TLD_TO_COUNTRY,
 )
 from .gemini_service import get_competitors_from_gemini
 from .search_clients import brave_search
@@ -69,15 +71,23 @@ async def get_brand_context(user_input: str) -> BrandContext:
         res = await search_google_api(f"{user_input} official site", num=1)
         url = clean_url(res[0]["link"]) if res else f"https://www.{user_input.lower().replace(' ', '')}.com"
 
-    # 2. Extraer Keywords
+    # 2. Extraer Keywords y descripción de la industria
+    industry_description = ""
     try:
         if url:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(url, headers=HEADERS, timeout=4)
                 if resp.status_code == 200:
                     soup = BeautifulSoup(resp.text, "html.parser")
-                    text = f"{soup.title.string if soup.title else ''} {soup.find('meta', attrs={'name': 'description'}) or ''}"
-
+                    # Extraer título y meta description para análisis
+                    title = soup.title.string if soup.title else ""
+                    meta_desc = soup.find('meta', attrs={'name': 'description'})
+                    meta_desc_text = meta_desc.get('content', '') if meta_desc else ""
+                    
+                    # Guardar descripción completa para contexto
+                    industry_description = f"{title}. {meta_desc_text}"
+                    
+                    text = f"{title} {meta_desc_text}"
                     raw_kws = extract_keywords_from_text(text, top_n=10)
                     brand_clean = name.lower()
 
@@ -85,11 +95,38 @@ async def get_brand_context(user_input: str) -> BrandContext:
                     keywords = [
                         kw for kw in raw_kws if kw != brand_clean and brand_clean not in kw and kw not in FAMOUS_DOMAINS
                     ][:5]
+                    
+                    print(f"📋 Contexto extraído: {title[:50]}...")
+                    print(f"🔑 Keywords: {', '.join(keywords)}")
     except Exception as e:
         print(f"⚠️ Error en contexto: {e}")
         keywords = ["service", "platform", "app", "online"]
 
-    context = BrandContext(name=name, url=url, keywords=keywords)
+    # 🌍 GEO-AWARENESS AGRESIVO: Detectar país basado en TLD
+    detected_country = None
+    detected_tld = None
+    if url:
+        try:
+            parsed = urlparse(url)
+            # Extraer TLD (último componente del dominio)
+            tld = parsed.netloc.split(".")[-1].lower()
+            if tld in TLD_TO_COUNTRY:
+                detected_country = TLD_TO_COUNTRY[tld]
+                detected_tld = tld
+                # 🎯 ACCIÓN CRÍTICA: Insertar el país al INICIO de las keywords para priorización máxima
+                keywords.insert(0, detected_country.lower())
+                print(f"🌍 Geo-Awareness Activado: {detected_country} (TLD: .{tld})")
+        except Exception as e:
+            print(f"⚠️ Error detectando TLD: {e}")
+
+    context = BrandContext(
+        name=name,
+        url=url,
+        keywords=keywords,
+        country=detected_country,
+        tld=detected_tld,
+        industry_description=industry_description if industry_description else None
+    )
 
     # Save to cache
     await cache.set_brand_context(user_input, context.model_dump())
@@ -270,6 +307,42 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
             is_hda = True
             signals.append(f"Alta relevancia semántica ({len(kws_match)} kws)")
 
+    # 🌍 GEO-BOOST: Scoring agresivo para competidores locales
+    geo_score = 0
+    if brand_context.tld and brand_context.country:
+        # Extraer TLD del candidato
+        try:
+            candidate_tld = urlparse(url).netloc.split(".")[-1].lower()
+            
+            # BOOST 1: Mismo TLD que la marca original (+25 puntos y señal fuerte)
+            if candidate_tld == brand_context.tld:
+                geo_score += 25
+                signals.append(f"✅ Mismo TLD (.{candidate_tld}) - Competidor LOCAL")
+                # Si tiene mismo TLD + dominio limpio, es HDA automáticamente
+                if is_clean_domain:
+                    is_hda = True
+            
+            # BOOST 2: País mencionado en título/snippet (+15 puntos)
+            country_lower = brand_context.country.lower()
+            if country_lower in snippet:
+                geo_score += 15
+                signals.append(f"📍 Mención del país ({brand_context.country})")
+            
+            # BOOST 3: Keywords locales en snippet (+10 puntos)
+            local_kw_matches = [kw for kw in LOCAL_BOOST_KEYWORDS if kw in snippet]
+            if local_kw_matches:
+                geo_score += 10
+                signals.append(f"🌍 Keywords locales ({len(local_kw_matches)})")
+            
+            # Si el geo-score es alto, promover a HDA o al menos a LDA
+            if geo_score >= 25:
+                is_hda = True
+                signals.append(f"🎯 Geo-Score: {geo_score} → HDA")
+            elif geo_score >= 15:
+                signals.append(f"🎯 Geo-Score: {geo_score} → LDA")
+        except Exception as e:
+            print(f"⚠️ Error en geo-boost: {e}")
+
     # --- FASE 3: RESULTADO ---
     if is_hda:
         return ClassificationResult(valid=True, type="HDA", justification=f"Direct Competitor. {', '.join(signals)}")
@@ -287,8 +360,8 @@ async def run_compas_scan(user_input: str) -> ScanReport:
     lda_competitors: list[Competitor] = []
     discarded_candidates: list[DiscardedCandidate] = []
 
-    # 1. ESTRATEGIA IA (Gemini)
-    ai_candidates = await get_competitors_from_gemini(context.name)
+    # 1. ESTRATEGIA IA (Gemini) con contexto geográfico completo
+    ai_candidates = await get_competitors_from_gemini(context)
     if ai_candidates:
         print("✨ Usando resultados de Gemini.")
         for cand in ai_candidates:
@@ -309,12 +382,31 @@ async def run_compas_scan(user_input: str) -> ScanReport:
 
     # 2. ESTRATEGIA WEB (Fallback)
     print("⚠️ Fallback to Web Search (Signals)...")
-    queries = [
-        f"related:{get_root_domain(context.url)}",
-        f"similar brands to {context.name}",
-        f"{context.name} competitors",
-        f"streaming services like {context.name}",  # Query dinámica idealmente
-    ]
+    
+    # 🌍 GEO-TARGETING: Si hay país detectado, priorizar queries geolocalizadas
+    if context.country:
+        print(f"🎯 Activando búsqueda geolocalizada para: {context.country}")
+        # Queries con prioridad geográfica (aparecen PRIMERO)
+        geo_queries = [
+            f"competidores de {context.name} en {context.country}",
+            f"{context.keywords[1] if len(context.keywords) > 1 else 'marcas'} {context.keywords[2] if len(context.keywords) > 2 else ''} {context.country}",
+            f"sitios como {context.name} {context.country}",
+            f"{context.name} alternativas {context.country}",
+        ]
+        # Queries generales como respaldo
+        general_queries = [
+            f"similar brands to {context.name}",
+            f"{context.name} competitors",
+        ]
+        queries = geo_queries + general_queries
+    else:
+        # Queries tradicionales si no hay país detectado
+        queries = [
+            f"related:{get_root_domain(context.url)}",
+            f"similar brands to {context.name}",
+            f"{context.name} competitors",
+            f"{' '.join(context.keywords[:2])} services like {context.name}",
+        ]
 
     raw_candidates: list[CompetitorCandidate] = []
     seen: set[str] = set()

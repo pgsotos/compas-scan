@@ -232,3 +232,91 @@ NEWS_TECH_DOMAINS = {
     "newsweek",
     "substack",
 }
+
+# Mapeo de TLD (Top Level Domain) a país/región
+# Usado para geo-targeting y priorización de competidores locales
+TLD_TO_COUNTRY = {
+    # América Latina
+    "cl": "Chile",
+    "ar": "Argentina",
+    "mx": "Mexico",
+    "co": "Colombia",
+    "br": "Brazil",
+    "pe": "Peru",
+    "ve": "Venezuela",
+    "ec": "Ecuador",
+    "uy": "Uruguay",
+    "py": "Paraguay",
+    "bo": "Bolivia",
+    "cr": "Costa Rica",
+    "pa": "Panama",
+    "gt": "Guatemala",
+    "sv": "El Salvador",
+    "hn": "Honduras",
+    "ni": "Nicaragua",
+    "do": "Dominican Republic",
+    "cu": "Cuba",
+    "pr": "Puerto Rico",
+    # Europa
+    "es": "Spain",
+    "fr": "France",
+    "de": "Germany",
+    "it": "Italy",
+    "pt": "Portugal",
+    "uk": "United Kingdom",
+    "nl": "Netherlands",
+    "be": "Belgium",
+    "ch": "Switzerland",
+    "at": "Austria",
+    "se": "Sweden",
+    "no": "Norway",
+    "dk": "Denmark",
+    "fi": "Finland",
+    "pl": "Poland",
+    "ie": "Ireland",
+    "gr": "Greece",
+    "cz": "Czech Republic",
+    # Asia-Pacífico
+    "jp": "Japan",
+    "cn": "China",
+    "in": "India",
+    "au": "Australia",
+    "nz": "New Zealand",
+    "kr": "South Korea",
+    "sg": "Singapore",
+    "th": "Thailand",
+    "my": "Malaysia",
+    "id": "Indonesia",
+    "ph": "Philippines",
+    "vn": "Vietnam",
+    "tw": "Taiwan",
+    "hk": "Hong Kong",
+    # África
+    "za": "South Africa",
+    "eg": "Egypt",
+    "ng": "Nigeria",
+    "ke": "Kenya",
+    # Otros
+    "ca": "Canada",
+    "ru": "Russia",
+    "tr": "Turkey",
+    "il": "Israel",
+    "ae": "UAE",
+    "sa": "Saudi Arabia",
+}
+
+# Keywords que indican relevancia local (genéricos, aplicables a cualquier geografía)
+# Usados para boost de scoring de competidores locales
+LOCAL_BOOST_KEYWORDS = {
+    # Términos geográficos de Latinoamérica
+    "chile", "chileno", "chilena", "santiago",
+    "argentina", "argentino", "argentina", "buenos aires",
+    "mexico", "mexicano", "mexicana", "ciudad de mexico",
+    "colombia", "colombiano", "colombiana", "bogota",
+    "peru", "peruano", "peruana", "lima",
+    "españa", "español", "española", "madrid", "barcelona",
+    "brasil", "brasileño", "brasileña", "sao paulo",
+    # Términos indicadores de localidad general
+    "local", "nacional", "region", "regional", "pais",
+    "country", "nationwide", "domestic",
+}
