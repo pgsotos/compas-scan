@@ -48,20 +48,7 @@ Para cada ambiente, agregar:
 
 **⚠️ Importante:** Deshabilitar "Deployment Protection" en Development y Staging para que los endpoints sean públicamente accesibles.
 
-### ⚙️ Configuración de Dominios en Vercel:
-
-Los dominios personalizados (`compas-scan-dev.vercel.app`, etc.) se configuran en:
-
-```
-Vercel Dashboard → Settings → Domains
-```
-
-Para cada ambiente, agregar:
-- `compas-scan-dev.vercel.app` → Branch: `develop`
-- `compas-scan-staging.vercel.app` → Branch: `staging`
-- `compas-scan.vercel.app` → Branch: `main`
-
-**⚠️ Importante:** Deshabilitar "Deployment Protection" en Development y Staging para que los endpoints sean públicamente accesibles.
+📚 **Documentación completa de deployment:** Ver [docs/deployment/](./docs/deployment/)
 
 ---
 
@@ -71,6 +58,55 @@ Para cada ambiente, agregar:
 
 1.  **Alta Disponibilidad (HDA):** Marcas globales y competidores directos validados por IA.
 2.  **Baja Disponibilidad (LDA):** Marcas de nicho, startups o competidores emergentes.
+
+## 📁 Estructura del Proyecto
+
+```
+compas-scan/
+├── api/                    # Backend (Python/FastAPI)
+│   ├── compas_core.py     # 🧠 Motor principal de análisis
+│   ├── gemini_service.py  # 🤖 Integración con Gemini AI
+│   ├── search_clients.py  # 🔍 Brave Search + Google fallback
+│   ├── cache.py           # ⚡ Redis caching layer
+│   ├── models.py          # 📊 Pydantic models
+│   ├── constants.py       # 🗺️  TLD mapping + keywords (60+ países)
+│   ├── db.py              # 💾 Supabase integration
+│   └── index.py           # 🚀 FastAPI app entrypoint
+│
+├── app/                    # Frontend (Next.js)
+│   ├── page.tsx           # 🏠 Página principal
+│   └── layout.tsx         # 📐 Layout global
+│
+├── components/             # React components
+│   ├── BrandSearch.tsx    # 🔎 Barra de búsqueda
+│   ├── CompetitorList.tsx # 📋 Lista de competidores
+│   └── ...                # Más componentes UI
+│
+├── docs/                   # 📚 Documentación
+│   ├── deployment/        # 🚀 Vercel setup & troubleshooting
+│   ├── DOCKER.md          # 🐳 Docker compose setup
+│   ├── CACHING.md         # ⚡ Redis configuration
+│   ├── OBSERVABILITY.md   # 📊 Logfire + Sentry
+│   └── MIGRATION_SUMMARY.md # 📝 Architecture evolution
+│
+├── tests/                  # 🧪 Test suite
+│   └── test_local.py      # Local testing script
+│
+├── scripts/                # 🛠️  Utility scripts
+│   └── setup-env-vars.sh  # Environment setup
+│
+├── docker-compose.yml      # 🐳 Local development
+├── vercel.json            # ⚙️  Vercel configuration
+├── requirements.txt       # 📦 Python dependencies
+└── package.json           # 📦 Node.js dependencies
+```
+
+### 🔑 Archivos Clave
+
+- **`api/compas_core.py`** - Orquestador principal (geo-awareness, scoring)
+- **`api/constants.py`** - TLD_TO_COUNTRY (60+ países), LOCAL_BOOST_KEYWORDS
+- **`api/gemini_service.py`** - Prompt engineering + Gemini integration
+- **`tests/test_local.py`** - Script de testing local (`uv run python tests/test_local.py "brand.com"`)
 
 ## 🚀 Arquitectura Técnica (IA-First)
 
@@ -292,9 +328,9 @@ curl http://localhost:8000/health
 ```
 
 📖 **Guías completas:** 
-- [OBSERVABILITY.md](OBSERVABILITY.md) - Setup y monitoring
-- [API_KEYS_GUIDE.md](API_KEYS_GUIDE.md) - Obtener todas las keys
-- [VERCEL_ENV_SETUP.md](VERCEL_ENV_SETUP.md) - Deploy a producción
+- [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) - Setup y monitoring
+- [docs/API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md) - Obtener todas las keys
+- [docs/deployment/](docs/deployment/) - Guías de deployment y Vercel
 
 ---
 
@@ -617,7 +653,12 @@ Toda la documentación técnica está organizada en el directorio `docs/`:
 ### 🚀 Setup & Deployment
 
 - **[docs/DOCKER.md](docs/DOCKER.md)** - Guía completa de Docker (Quick Start recomendado)
-- **[docs/VERCEL.md](docs/VERCEL.md)** - Configuración completa de Vercel (dominios, variables, protección)
+- **[docs/deployment/](docs/deployment/)** - 📁 Deployment & Vercel
+  - [VERCEL.md](docs/deployment/VERCEL.md) - Configuración principal
+  - [VERCEL_QUICK_SETUP.md](docs/deployment/VERCEL_QUICK_SETUP.md) - Setup rápido
+  - [VERCEL_ENV_SETUP.md](docs/deployment/VERCEL_ENV_SETUP.md) - Variables por ambiente
+  - [VERCEL_ENV_CHECK.md](docs/deployment/VERCEL_ENV_CHECK.md) - Verificación
+  - [VERCEL_PROTECTION_FIX.md](docs/deployment/VERCEL_PROTECTION_FIX.md) - Troubleshooting
 
 ### 🔑 Configuration
 
@@ -633,6 +674,7 @@ Toda la documentación técnica está organizada en el directorio `docs/`:
 
 - **[docs/MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md)** - Resumen histórico de migración a FastAPI
 - **[docs/CODE_QUALITY_ANALYSIS.md](docs/CODE_QUALITY_ANALYSIS.md)** - Análisis de calidad de código
+- **[docs/FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md)** - Plan original del frontend
 
 ---
 
