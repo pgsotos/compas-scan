@@ -17,6 +17,9 @@ class BrandContext(BaseModel):
     name: str = Field(..., description="Brand name (e.g., 'Hulu')", min_length=1)
     url: str = Field(..., description="Official brand website URL")
     keywords: list[str] = Field(default_factory=list, description="Extracted keywords from brand's website")
+    country: Optional[str] = Field(None, description="Detected country from TLD (e.g., 'Chile' from .cl)")
+    tld: Optional[str] = Field(None, description="Detected TLD (e.g., 'cl' from bendita.cl)")
+    industry_description: Optional[str] = Field(None, description="Title and meta description from the website")
 
     model_config = {"from_attributes": True}
 
