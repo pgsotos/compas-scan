@@ -17,6 +17,7 @@ from .constants import (
     IGNORED_TERMS,
     NEWS_TECH_DOMAINS,
     STOP_WORDS,
+    TLD_TO_COUNTRY,
 )
 from .gemini_service import get_competitors_from_gemini
 from .search_clients import brave_search
@@ -88,6 +89,20 @@ async def get_brand_context(user_input: str) -> BrandContext:
     except Exception as e:
         print(f"⚠️ Error en contexto: {e}")
         keywords = ["service", "platform", "app", "online"]
+
+    # 🌍 GEO-AWARENESS: Detectar país basado en TLD
+    detected_country = None
+    if url:
+        try:
+            parsed = urlparse(url)
+            tld = parsed.netloc.split(".")[-1].lower()
+            if tld in TLD_TO_COUNTRY:
+                detected_country = TLD_TO_COUNTRY[tld]
+                # Insertar el país al INICIO de las keywords para priorización
+                keywords.insert(0, detected_country)
+                print(f"🌍 Geo-awareness activado: {detected_country} (TLD: .{tld})")
+        except Exception as e:
+            print(f"⚠️ Error detectando TLD: {e}")
 
     context = BrandContext(name=name, url=url, keywords=keywords)
 
@@ -288,7 +303,7 @@ async def run_compas_scan(user_input: str) -> ScanReport:
     discarded_candidates: list[DiscardedCandidate] = []
 
     # 1. ESTRATEGIA IA (Gemini)
-    ai_candidates = await get_competitors_from_gemini(context.name)
+    ai_candidates = await get_competitors_from_gemini(context)
     if ai_candidates:
         print("✨ Usando resultados de Gemini.")
         for cand in ai_candidates:
