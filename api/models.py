@@ -20,6 +20,7 @@ class BrandContext(BaseModel):
     country: Optional[str] = Field(None, description="Detected country from TLD (e.g., 'Chile' from .cl)")
     tld: Optional[str] = Field(None, description="Detected TLD (e.g., 'cl' from bendita.cl)")
     industry_description: Optional[str] = Field(None, description="Title and meta description from the website")
+    search_queries: list[str] = Field(default_factory=list, description="Generated search queries used to find competitors")
 
     model_config = {"from_attributes": True}
 

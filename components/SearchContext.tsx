@@ -1,17 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { BrandContext } from "@/lib/api";
 
 interface SearchContextProps {
   context: BrandContext;
 }
 
+// Stop words y términos comunes a filtrar
+const STOP_WORDS = new Set([
+  "the", "of", "to", "and", "a", "in", "is", "it", "you", "that", "he", "was", "for", "on", "are", "with",
+  "as", "i", "his", "they", "be", "at", "one", "have", "this", "from", "or", "had", "by", "not", "but",
+  "de", "en", "como", "sitios", "marcas", "alternativas", "related", "similar", "brands", "competitors",
+  "competidores", "services", "like"
+]);
+
+/**
+ * Extrae keywords relevantes de las queries de búsqueda
+ */
+function extractSearchKeywords(queries: string[], brandName: string): string[] {
+  if (!queries || queries.length === 0) return [];
+
+  const keywordSet = new Set<string>();
+  const brandLower = brandName.toLowerCase();
+
+  queries.forEach((query) => {
+    // Limpiar y dividir la query
+    const words = query
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ") // Remover puntuación
+      .split(/\s+/)
+      .filter((word) => word.length > 2); // Palabras de más de 2 caracteres
+
+    words.forEach((word) => {
+      // Filtrar stop words y nombre de la marca
+      if (!STOP_WORDS.has(word) && !brandLower.includes(word) && !word.includes(brandLower)) {
+        keywordSet.add(word);
+      }
+    });
+  });
+
+  // Convertir a array y limitar a los primeros 6 keywords únicos
+  return Array.from(keywordSet).slice(0, 6);
+}
+
 export default function SearchContext({ context }: SearchContextProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Calcular número de queries generadas (estimado basado en lógica del backend)
-  const queriesCount = context.country ? 6 : 4;
+  // Extraer keywords de las queries de búsqueda
+  const searchKeywords = useMemo(() => {
+    if (context.search_queries && context.search_queries.length > 0) {
+      return extractSearchKeywords(context.search_queries, context.name);
+    }
+    // Fallback a keywords del sitio web si no hay queries
+    return context.keywords;
+  }, [context.search_queries, context.keywords, context.name]);
+
+  // Calcular número de queries generadas
+  const queriesCount = context.search_queries?.length || (context.country ? 6 : 4);
   const strategy = "AI-First (Gemini)";
 
   return (
@@ -44,8 +90,8 @@ export default function SearchContext({ context }: SearchContextProps) {
       {/* Keywords badges (siempre visibles) */}
       <div className="mt-3">
         <div className="flex flex-wrap gap-2">
-          {context.keywords.length > 0 ? (
-            context.keywords.map((keyword, index) => (
+          {searchKeywords.length > 0 ? (
+            searchKeywords.map((keyword, index) => (
               <span
                 key={index}
                 className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200"
@@ -54,7 +100,7 @@ export default function SearchContext({ context }: SearchContextProps) {
               </span>
             ))
           ) : (
-            <span className="text-sm text-gray-500 italic">No keywords extracted</span>
+            <span className="text-sm text-gray-500 italic">No search keywords found</span>
           )}
         </div>
       </div>

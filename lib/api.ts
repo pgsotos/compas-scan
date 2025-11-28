@@ -28,6 +28,7 @@ export interface BrandContext {
   country?: string;
   tld?: string;
   industry_description?: string;
+  search_queries?: string[];
 }
 
 export interface ScanResponse {
