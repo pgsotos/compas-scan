@@ -14,23 +14,23 @@
 
 ```bash
 # Production
-curl "https://compas-scan.vercel.app/health"
-curl "https://compas-scan.vercel.app/?brand=Nike"
+curl "https://compas-scan.vercel.app/api/health"
+curl "https://compas-scan.vercel.app/api/?brand=Nike"
 
 # Staging (Pre-producción)
-curl "https://compas-scan-staging.vercel.app/health"
-curl "https://compas-scan-staging.vercel.app/?brand=Nike"
+curl "https://compas-scan-staging.vercel.app/api/health"
+curl "https://compas-scan-staging.vercel.app/api/?brand=Nike"
 
 # Development
-curl "https://compas-scan-dev.vercel.app/health"
-curl "https://compas-scan-dev.vercel.app/?brand=Nike"
+curl "https://compas-scan-dev.vercel.app/api/health"
+curl "https://compas-scan-dev.vercel.app/api/?brand=Nike"
 ```
 
 ### 📊 Documentación de API:
 
-- **Production:** [https://compas-scan.vercel.app/docs](https://compas-scan.vercel.app/docs)
-- **Staging:** [https://compas-scan-staging.vercel.app/docs](https://compas-scan-staging.vercel.app/docs)
-- **Development:** [https://compas-scan-dev.vercel.app/docs](https://compas-scan-dev.vercel.app/docs)
+- **Production:** [https://compas-scan.vercel.app/api/docs](https://compas-scan.vercel.app/api/docs)
+- **Staging:** [https://compas-scan-staging.vercel.app/api/docs](https://compas-scan-staging.vercel.app/api/docs)
+- **Development:** [https://compas-scan-dev.vercel.app/api/docs](https://compas-scan-dev.vercel.app/api/docs)
 
 ### ⚙️ Configuración de Dominios en Vercel:
 
@@ -103,7 +103,7 @@ Todos los modelos están centralizados en `api/models.py` para:
 
 - ✅ Type safety en toda la aplicación
 - ✅ Validación automática en boundaries (API, Gemini responses)
-- ✅ Documentación auto-generada en `/docs`
+- ✅ Documentación auto-generada en `/api/docs`
 - ✅ Mejor IDE support con autocomplete
 
 ## 🧠 Lógica de Descubrimiento & Clasificación
@@ -260,7 +260,7 @@ curl http://localhost:8000/health
 open http://localhost:3000
 
 # Abrir docs del API
-open http://localhost:8000/docs
+open http://localhost:8000/api/docs
 ```
 
 ### Comandos Docker Disponibles:

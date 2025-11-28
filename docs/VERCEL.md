@@ -231,13 +231,13 @@ VERCEL_ENV=production  # Auto-configurado por Vercel
 
 ```bash
 # Development
-curl https://compas-scan-dev.vercel.app/health | jq
+curl https://compas-scan-dev.vercel.app/api/health | jq
 
 # Staging
-curl https://compas-scan-staging.vercel.app/health | jq
+curl https://compas-scan-staging.vercel.app/api/health | jq
 
 # Production
-curl https://compas-scan.vercel.app/health | jq
+curl https://compas-scan.vercel.app/api/health | jq
 ```
 
 **Respuesta Esperada:**
@@ -258,7 +258,7 @@ curl https://compas-scan.vercel.app/health | jq
 ### Test de Scan
 
 ```bash
-curl "https://compas-scan-dev.vercel.app/?brand=Nike"
+curl "https://compas-scan-dev.vercel.app/api/?brand=Nike"
 ```
 
 ### Ver Logs en Vercel

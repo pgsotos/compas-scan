@@ -334,7 +334,7 @@ git push origin develop
 5. **Verificar:**
 
 ```bash
-curl https://compas-scan-dev.vercel.app/health
+curl https://compas-scan-dev.vercel.app/api/health
 ```
 
 ---
