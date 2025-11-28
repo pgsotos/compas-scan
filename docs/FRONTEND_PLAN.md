@@ -77,9 +77,9 @@ compas-scan/
 
 - Historial de búsquedas
 - Comparación de marcas
-- Exportar resultados
+- ✅ Exportar resultados (Implementado)
 - Dark mode
-- Responsive design mejorado
+- Responsive design mejorado (Implementado)
 
 ---
 
