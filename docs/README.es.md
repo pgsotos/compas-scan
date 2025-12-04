@@ -60,6 +60,15 @@
 - Testing local con MCP
 - Variables de entorno
 
+📁 **[monitoring/](./monitoring/)** - Reportes de monitoreo
+- [STAGING_MONITORING_REPORT.md](./monitoring/STAGING_MONITORING_REPORT.md) - Monitoreo del ambiente staging
+
+📁 **[reports/](./reports/)** - Reportes históricos y resultados de tests
+- [SESSION_SUMMARY.md](./reports/SESSION_SUMMARY.md) - Resúmenes de sesiones de desarrollo
+- [TEST_REPORT.md](./reports/TEST_REPORT.md) - Reportes de ejecución de tests
+- [FRONTEND_PLAN.md](./reports/FRONTEND_PLAN.md) - Plan original del frontend (completado)
+- [CODE_QUALITY_ANALYSIS.md](./reports/CODE_QUALITY_ANALYSIS.md) - Análisis de calidad de código (completado)
+
 ### 📖 Architecture & History
 
 🏗️ [**MIGRATION_SUMMARY.md**](./MIGRATION_SUMMARY.md) - Historia del proyecto
@@ -68,16 +77,6 @@
 - Refactoring async/await
 - Containerización con Docker
 - Capa de caché Redis
-
-🔍 [**CODE_QUALITY_ANALYSIS.md**](./CODE_QUALITY_ANALYSIS.md) - Análisis de calidad de código
-- Identificación de code smells
-- Recomendaciones de refactoring
-- Mejores prácticas
-
-🎨 [**FRONTEND_PLAN.md**](./FRONTEND_PLAN.md) - Plan original del frontend
-- Diseño inicial
-- Stack técnico (Next.js + Tailwind)
-- Componentes principales
 
 ---
 

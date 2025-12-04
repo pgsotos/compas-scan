@@ -33,7 +33,7 @@ Implemented production-grade Sentry integration with 7 advanced features:
 **Test Suites**:
 - `scripts/comprehensive_test.sh` - 22 automated tests
 - `scripts/test_sentry_features.sh` - Sentry feature verification
-- `TEST_REPORT.md` - Detailed test results
+- `docs/reports/TEST_REPORT.md` - Detailed test results
 
 **Test Results**: 22/22 PASSED (100%)
 
@@ -42,7 +42,7 @@ Implemented production-grade Sentry integration with 7 advanced features:
 **Created**:
 - `docs/SENTRY_CONFIGURATION.md` (343 lines) - Setup guide
 - `docs/SENTRY_FEATURES.md` (438 lines) - Feature reference
-- `TEST_REPORT.md` - Pre-staging validation report
+- `docs/reports/TEST_REPORT.md` - Pre-staging validation report
 
 ---
 
@@ -113,7 +113,7 @@ cat docs/SENTRY_CONFIGURATION.md
 cat docs/SENTRY_FEATURES.md
 
 # Review test report
-cat TEST_REPORT.md
+cat docs/reports/TEST_REPORT.md
 ```
 
 ---
@@ -130,7 +130,7 @@ cat TEST_REPORT.md
 - `docs/SENTRY_FEATURES.md` - Feature documentation
 - `scripts/test_sentry_features.sh` - Sentry tests
 - `scripts/comprehensive_test.sh` - Full test suite
-- `TEST_REPORT.md` - Test results
+- `docs/reports/TEST_REPORT.md` - Test results
 
 ### Documentation
 - Test artifacts in root directory
