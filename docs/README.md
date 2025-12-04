@@ -60,6 +60,13 @@ Central index of all technical documentation for the project.
 - Local testing with MCP
 - Environment variables
 
+📁 **[monitoring/](./monitoring/)** - Monitoring reports
+- [STAGING_MONITORING_REPORT.md](./monitoring/STAGING_MONITORING_REPORT.md) - Staging environment monitoring
+
+📁 **[reports/](./reports/)** - Historical reports and test results
+- [SESSION_SUMMARY.md](./reports/SESSION_SUMMARY.md) - Development session summaries
+- [TEST_REPORT.md](./reports/TEST_REPORT.md) - Test execution reports
+
 ### 📖 Architecture & History
 
 🏗️ [**MIGRATION_SUMMARY.md**](./MIGRATION_SUMMARY.md) - Project history
