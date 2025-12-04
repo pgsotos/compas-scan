@@ -25,28 +25,21 @@ elif [ -f "$HOME/.local/bin/github-mcp-server" ]; then
     echo "✅ Found github-mcp-server binary: $GITHUB_MCP_BINARY"
 else
     echo "⚠️  GitHub MCP binary not found in PATH"
-    echo ""
-    echo "📥 To install GitHub MCP Server:"
-    echo "   1. Download from: https://github.com/github/github-mcp-server/releases"
-    echo "   2. Extract and place in PATH (e.g., ~/.local/bin/)"
-    echo "   3. Make executable: chmod +x github-mcp-server"
-    echo ""
-    read -p "Do you want to use Docker instead? (y/n): " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "❌ Cancelled. Please install the binary first."
-        exit 1
-    fi
-    USE_DOCKER=true
-fi
-
-# Check for Docker if binary not found
-if [ -z "$GITHUB_MCP_BINARY" ] && [ "$USE_DOCKER" != "true" ]; then
-    if ! command -v docker &> /dev/null; then
+    
+    # Check for Docker automatically
+    if command -v docker &> /dev/null; then
+        echo "✅ Docker detected, will use Docker image"
+        USE_DOCKER=true
+    else
+        echo ""
+        echo "📥 To install GitHub MCP Server:"
+        echo "   1. Download from: https://github.com/github/github-mcp-server/releases"
+        echo "   2. Extract and place in PATH (e.g., ~/.local/bin/)"
+        echo "   3. Make executable: chmod +x github-mcp-server"
+        echo ""
         echo "❌ Error: Docker not found. Please install Docker or the GitHub MCP binary."
         exit 1
     fi
-    USE_DOCKER=true
 fi
 
 # Backup existing config
