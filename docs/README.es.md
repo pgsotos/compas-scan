@@ -52,6 +52,12 @@
 - Integración con Cursor
 - Actualización de API keys
 
+📊 [**MCP_STATUS.md**](./MCP_STATUS.md) - Revisión completa del estado de MCPs
+- MCPs configurados actualmente
+- Wrappers Python vs MCPs reales
+- MCPs disponibles pero no configurados
+- Recomendaciones
+
 ### 📊 Observability & Monitoring
 
 📈 [**OBSERVABILITY.md**](./OBSERVABILITY.md) - Monitoreo completo
