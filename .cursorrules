@@ -34,14 +34,22 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
   - `main`: Production releases (after staging approval)
 - **Commits:** In English and Conventional Commits format (`feat:`, `fix:`, `refactor:`, `docs:`).
 
-## 2.1 GitHub MCP Usage Rules (DEPRECATED)
-- ⚠️ **Note:** `@modelcontextprotocol/server-github` is deprecated (archived May 29, 2025)
-- ✅ **Current solution:** Use `gh` CLI for all GitHub operations
-- ✅ **All GitHub operations MUST:**
-  - Use `gh pr create` CLI command for PR creation
-  - Use `gh pr merge` CLI command for merging (after user confirmation)
+## 2.1 GitHub MCP Usage Rules (If Configured)
+- ✅ **Official GitHub MCP Server:** https://github.com/github/github-mcp-server (Go-based, actively maintained)
+- ⚠️ **Note:** npm package `@modelcontextprotocol/server-github` is deprecated, use official GitHub server instead
+- ✅ **GitHub MCP CAN be used to:**
+  - Create pull requests (automated PR creation)
+  - Query repository information (PRs, issues, branches, commits)
+  - Create issues
+  - Get PR/commit/branch details
+- ❌ **GitHub MCP MUST NOT be used to:**
+  - Merge pull requests (violates Agent Protocol Step 8)
+  - Close PRs without proper merge workflow
+- ✅ **All merges MUST:**
+  - Use `gh pr merge` CLI command (not MCP)
   - Follow Agent Protocol Step 8: Ask user "PR created. Ready to merge?" before merging
-  - Require explicit user confirmation for all merges
+  - Require explicit user confirmation
+- ✅ **Recommended:** Use `--read-only` mode for query operations, use `gh` CLI for write operations
 
 ## 3. Architecture & Modularity
 - `api/index.py`: Entrypoint.
