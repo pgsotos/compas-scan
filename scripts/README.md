@@ -65,7 +65,7 @@ Script para instalar el binario de GitHub MCP Server como alternativa a Docker.
 ---
 
 ### `setup-github-mcp.sh`
-Script para configurar GitHub MCP en Cursor IDE.
+Script para configurar GitHub MCP en el IDE.
 
 **Uso:**
 ```bash
@@ -85,7 +85,7 @@ Script para configurar GitHub MCP en Cursor IDE.
 - Integra con configuración MCP existente
 
 ### `setup-memory-mcp.sh`
-Script para configurar Memory MCP en Cursor IDE.
+Script para configurar Memory MCP en el IDE.
 
 **Uso:**
 ```bash
@@ -108,7 +108,7 @@ Script para actualizar el token de GitHub MCP con permisos completos.
 **Características:**
 - Obtiene token del gh CLI (con permisos completos)
 - Crea backup automático de la configuración
-- Actualiza token en `~/.cursor/mcp.json`
+- Actualiza token en el archivo de configuración MCP del IDE
 - Verifica scopes del token
 
 **Nota:** Ejecutar si GitHub MCP falla con error 403 (permisos insuficientes).
@@ -157,7 +157,7 @@ Script interactivo para ajustar las protecciones de rama en develop (individual)
 ---
 
 ### `check-mcp-status.sh`
-Script para verificar el estado de los MCPs configurados en Cursor.
+Script para verificar el estado de los MCPs configurados en el IDE.
 
 **Uso:**
 ```bash
