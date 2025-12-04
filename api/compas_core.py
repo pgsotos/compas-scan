@@ -523,11 +523,30 @@ def _classify_all_candidates(
     discarded_candidates: list[DiscardedCandidate] = []
     
     for cand in candidates:
+        # Skip candidates with empty URLs to prevent validation errors
+        if not cand.clean_url:
+            discarded = DiscardedCandidate(
+                url=cand.link or "(empty URL)",
+                reason="Empty or invalid URL"
+            )
+            discarded_candidates.append(discarded)
+            continue
+        
         res = classify_competitor(cand, context)
         
         if res.valid:
+            netloc = urlparse(cand.clean_url).netloc
+            # Additional safety check: ensure netloc is not empty
+            if not netloc:
+                discarded = DiscardedCandidate(
+                    url=cand.clean_url,
+                    reason="Invalid URL structure (empty domain)"
+                )
+                discarded_candidates.append(discarded)
+                continue
+            
             competitor = Competitor(
-                name=urlparse(cand.clean_url).netloc,
+                name=netloc,
                 url=cand.clean_url,
                 justification=res.justification or ""
             )
