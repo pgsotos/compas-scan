@@ -28,6 +28,33 @@ Script para actualizar la API key de Context7 MCP.
 ./scripts/update-context7-key.sh <tu-api-key>
 ```
 
+### `setup-github-mcp.sh`
+Script para configurar GitHub MCP en Cursor IDE.
+
+**Uso:**
+```bash
+./scripts/setup-github-mcp.sh
+```
+
+**Características:**
+- Soporta binario o Docker
+- Configuración de token de GitHub (opcional)
+- Modo read-only (recomendado)
+- Integra con configuración MCP existente
+
+### `setup-memory-mcp.sh`
+Script para configurar Memory MCP en Cursor IDE.
+
+**Uso:**
+```bash
+./scripts/setup-memory-mcp.sh
+```
+
+**Características:**
+- Retención de contexto entre sesiones
+- No requiere API keys
+- Integra con configuración MCP existente
+
 ### `check-mcp-status.sh`
 Script para verificar el estado de los MCPs configurados en Cursor.
 
@@ -39,7 +66,10 @@ Script para verificar el estado de los MCPs configurados en Cursor.
 **Muestra:**
 - Estado del archivo de configuración MCP
 - Package managers disponibles (bunx/npx)
-- Estado de Context7 MCP y API key
+- Estado de todos los MCPs configurados:
+  - Context7 MCP y API key
+  - GitHub MCP y token
+  - Memory MCP
 - Notas y próximos pasos
 
 ## Notas
