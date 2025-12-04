@@ -9,19 +9,35 @@ Guide for managing branch protection rules in CompasScan repository.
 ### Branch: `develop`
 
 **Protection Rules:**
-- **Required Pull Request Reviews:** 1 approval required
+- **Required Pull Request Reviews:** 0 (auto-merge enabled)
 - **Enforce for Admins:** ❌ Disabled (admins can bypass)
 - **Required Status Checks:** None (strict mode disabled)
 - **Allow Force Pushes:** ❌ Disabled
 - **Allow Deletions:** ❌ Disabled
 
+**Status:** ✅ Configured for fast iteration - GitHub MCP can merge directly
+
 ### Branch: `staging`
 
-Check with: `gh api repos/pgsotos/compas-scan/branches/staging/protection`
+**Protection Rules:**
+- **Required Pull Request Reviews:** 1 approval required
+- **Enforce for Admins:** ❌ Disabled (admins can bypass)
+- **Required Status Checks:** Vercel (strict mode enabled)
+- **Allow Force Pushes:** ❌ Disabled
+- **Allow Deletions:** ❌ Disabled
+
+**Status:** ✅ Configured for QA validation
 
 ### Branch: `main`
 
-Check with: `gh api repos/pgsotos/compas-scan/branches/main/protection`
+**Protection Rules:**
+- **Required Pull Request Reviews:** 2 approvals required
+- **Enforce for Admins:** ✅ Enabled (even admins must follow rules)
+- **Required Status Checks:** Vercel + Tests (strict mode enabled)
+- **Allow Force Pushes:** ❌ Disabled
+- **Allow Deletions:** ❌ Disabled
+
+**Status:** ✅ Configured for maximum production safety
 
 ---
 
@@ -109,9 +125,22 @@ gh api repos/pgsotos/compas-scan/branches/develop/protection | jq
 gh api repos/pgsotos/compas-scan/branches | jq '.[] | {name, protected}'
 ```
 
+### Configure All Branches (Recommended)
+
+Use the comprehensive script to configure all branches at once:
+
+```bash
+./scripts/configure-branch-protections.sh
+```
+
+This script configures:
+- `develop`: 0 reviews, fast iteration
+- `staging`: 1 review, QA validation
+- `main`: 2 reviews, production safety
+
 ### Adjust Protection (Interactive)
 
-Use the provided script:
+For individual branch adjustments, use:
 
 ```bash
 ./scripts/adjust-branch-protection.sh
