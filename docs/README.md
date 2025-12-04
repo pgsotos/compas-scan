@@ -47,7 +47,13 @@ Central index of all technical documentation for the project.
 - Performance benefits (28x faster)
 - Cache hit/miss metrics
 
-🔌 [**CONTEXT7_SETUP.md**](./CONTEXT7_SETUP.md) - MCP Server for documentation
+🔌 [**MCP_SETUP_GUIDE.md**](./MCP_SETUP_GUIDE.md) - Complete MCP setup guide
+- Quick setup for all MCPs (Context7, GitHub, Memory)
+- Automated setup scripts
+- Manual configuration options
+- Troubleshooting guide
+
+🔌 [**CONTEXT7_SETUP.md**](./CONTEXT7_SETUP.md) - Context7 MCP detailed setup
 - Context7 setup
 - Cursor integration
 - API key updates
@@ -63,6 +69,16 @@ Central index of all technical documentation for the project.
 - Memory MCP for context retention
 - Sentry MCP for error analysis
 - Priority-based implementation plan
+
+🔍 [**GITHUB_MCP_COMPATIBILITY.md**](./GITHUB_MCP_COMPATIBILITY.md) - GitHub MCP compatibility analysis
+- Compatibility with Gitflow rules
+- Conflict analysis
+- Recommended configuration
+
+🔍 [**GITHUB_MCP_INTEGRATION_ANALYSIS.md**](./GITHUB_MCP_INTEGRATION_ANALYSIS.md) - GitHub MCP integration analysis
+- What integration means
+- Redundancy analysis with Gitflow
+- Practical examples
 
 ### 📊 Observability & Monitoring
 

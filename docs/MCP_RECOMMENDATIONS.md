@@ -21,39 +21,72 @@ CompasScan is a competitive intelligence tool that:
 
 ### 1. **GitHub MCP** ⭐ Highly Recommended
 
-**Package:** `@modelcontextprotocol/server-github`  
-**Official:** ✅ Yes
+**Official Repository:** [github/github-mcp-server](https://github.com/github/github-mcp-server)  
+**Status:** ✅ **ACTIVE** (Latest: v0.24.0, Dec 2, 2025)  
+**Language:** Go (binary or Docker)
+
+**Note:** The npm package `@modelcontextprotocol/server-github` is deprecated, but GitHub's official MCP server is actively maintained and recommended.
+
+**Key Features:**
+- ✅ **Read-only mode** - Perfect for query operations
+- ✅ **Lockdown mode** - Enhanced security for public repos
+- ✅ **Dynamic toolset discovery** - Beta feature to reduce tool confusion
+- ✅ **Copilot Spaces integration** - Advanced AI coding features
+- ✅ **Comprehensive toolset** - PRs, issues, repos, security advisories, and more
 
 **Use Cases:**
 - **CI/CD Operations**: Automate PR creation, merging, and deployment workflows
 - **Repository Management**: Query repository stats, issues, PRs during development
 - **Code Review**: AI-assisted code review and suggestions
 - **Release Management**: Automate versioning and changelog generation
+- **Security**: Query security advisories and vulnerabilities
 
 **Benefits for CompasScan:**
 - Automate Gitflow workflow (feature → develop → staging → main)
 - Generate PR descriptions automatically
 - Query repository metrics and history
 - Integrate with deployment pipelines
+- Enhanced security features
 
-**Setup:**
+**Setup Options:**
+
+**Option 1: Binary (Recommended)**
+```bash
+# Download latest release from:
+# https://github.com/github/github-mcp-server/releases
+
+# Add to ~/.cursor/mcp.json:
+{
+  "mcpServers": {
+    "github": {
+      "command": "/path/to/github-mcp-server",
+      "args": ["--read-only"],  # Optional: read-only mode
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token"
+      }
+    }
+  }
+}
+```
+
+**Option 2: Docker**
 ```json
 {
   "mcpServers": {
     "github": {
-      "command": "npx",
+      "command": "docker",
       "args": [
-        "-y",
-        "@modelcontextprotocol/server-github",
-        "--token",
-        "ghp_your_github_token"
+        "run", "-i", "--rm",
+        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token",
+        "-e", "GITHUB_READ_ONLY=1",
+        "ghcr.io/github/github-mcp-server"
       ]
     }
   }
 }
 ```
 
-**Status:** ⚠️ **Consider adding** - Would streamline Gitflow automation
+**Status:** ⚠️ **Consider adding** - Official GitHub MCP server, actively maintained
 
 ---
 
@@ -197,7 +230,7 @@ CompasScan is a competitive intelligence tool that:
 
 | MCP | Priority | Use Case | Status |
 |-----|----------|----------|--------|
-| **GitHub MCP** | ⭐⭐⭐ High | CI/CD automation, Gitflow | ⚠️ Consider |
+| **GitHub MCP** | ⭐⭐⭐ High | CI/CD automation, Gitflow | ✅ Available (official) |
 | **Memory MCP** | ⭐⭐ Medium | Context retention | ⚠️ Consider |
 | **Sentry MCP** | ⭐⭐ Medium | Error analysis | ⚠️ Research |
 | **PostgreSQL MCP** | ⭐ Low | Dev database exploration | ⚠️ Optional |
@@ -209,9 +242,11 @@ CompasScan is a competitive intelligence tool that:
 
 ### Phase 1: High Priority
 1. **GitHub MCP** - Automate Gitflow workflow
-   - Setup: `~/.cursor/mcp.json`
-   - Use: PR creation, merging, release management
-   - Benefit: Streamline deployment process
+   - **Repository:** https://github.com/github/github-mcp-server
+   - **Setup:** Binary or Docker (see setup options above)
+   - **Use:** PR creation, repository queries, CI/CD automation
+   - **Benefit:** Official GitHub MCP server, actively maintained
+   - **Note:** Can use read-only mode for safety
 
 ### Phase 2: Medium Priority
 2. **Memory MCP** - Improve AI context

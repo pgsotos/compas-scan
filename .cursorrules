@@ -13,6 +13,8 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
 - **Search (Fallback):** Google Custom Search JSON API (via `requests`). ❌ SCRAPING LIBRARIES like `googlesearch-python` ARE FORBIDDEN.
 
 ## 2. Gitflow & Version Control
+
+### 2.1 Process Rules
 - **Workflow:** Strict Gitflow with 3-tier deployment.
 - **Branch Structure:**
   - `main` - Production (https://compas-scan.vercel.app)
@@ -27,12 +29,25 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
     - `feature/*` → `develop` (via PR)
     - `develop` → `staging` (via PR)
     - `staging` → `main` (via PR)
-  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
+  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge` CLI).
 - **Promotion Strategy:**
   - `develop`: Continuous integration (auto-deploy on merge)
   - `staging`: Weekly releases for QA testing
   - `main`: Production releases (after staging approval)
 - **Commits:** In English and Conventional Commits format (`feat:`, `fix:`, `refactor:`, `docs:`).
+
+### 2.2 GitHub MCP Tool Usage (If Configured)
+**Purpose:** GitHub MCP automates PR creation and provides repository context, while following the Gitflow process defined above.
+
+- ✅ **Official GitHub MCP Server:** https://github.com/github/github-mcp-server (Go-based, actively maintained)
+- ✅ **Allowed operations:**
+  - Create pull requests (automates Step 7 of Agent Protocol)
+  - Query repository information (PRs, issues, branches, commits)
+  - Create issues
+- ❌ **Prohibited operations:**
+  - Merge pull requests (must use `gh pr merge` CLI - see Agent Protocol Step 8)
+  - Close PRs without proper merge workflow
+- ✅ **Recommended:** Use `--read-only` mode for query operations
 
 ## 3. Architecture & Modularity
 - `api/index.py`: Entrypoint.
