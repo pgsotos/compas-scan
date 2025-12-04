@@ -1,12 +1,17 @@
 #!/bin/bash
-# Script para verificar el estado de los MCPs configurados en Cursor
+# Script para verificar el estado de los MCPs configurados en el IDE
 
 set -e
 
-CURSOR_MCP_DIR="$HOME/.cursor"
-MCP_CONFIG_FILE="$CURSOR_MCP_DIR/mcp.json"
+# Source IDE detection utility
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/detect-ide.sh"
 
-echo "🔍 Verificando estado de MCPs en Cursor..."
+# Get MCP config paths
+MCP_CONFIG_DIR=$(get_mcp_config_dir)
+MCP_CONFIG_FILE=$(get_mcp_config_path)
+
+echo "🔍 Verificando estado de MCPs en el IDE..."
 echo ""
 
 # Verificar si existe el archivo de configuración
@@ -88,8 +93,8 @@ fi
 
 echo ""
 echo "📝 Notes:"
-echo "  - MCPs activate after restarting Cursor IDE"
-echo "  - If MCP resources are not available, restart Cursor"
+echo "  - MCPs activate after restarting the IDE"
+echo "  - If MCP resources are not available, restart the IDE"
 echo ""
 echo "🔧 Setup scripts:"
 echo "  - Context7: ./scripts/setup-context7.sh"
