@@ -101,14 +101,38 @@ MCPs are IDE tools for AI assistants, not runtime services.
 - ❌ shadcn MCP: Only if extensively using shadcn/ui components
 - ❌ Other MCPs: Current setup covers all needs
 
-### If Adding More MCPs
+### Official MCP Servers Available
 
-Consider these only if needed:
-1. **GitHub MCP** - For repository operations
-2. **File System MCP** - For advanced file operations
-3. **Database MCP** - For direct database queries (if needed)
+The Model Context Protocol project maintains official servers at:
+https://github.com/modelcontextprotocol/servers
 
-**Current recommendation:** Keep current setup. It's optimal for CompasScan's needs.
+**Available Official MCPs:**
+1. **Filesystem MCP** (`@modelcontextprotocol/server-filesystem`)
+   - File operations, reading/writing files
+   - **Use Case:** Advanced file manipulation in development
+   - **Status:** ❌ Not needed (we use direct Python file operations)
+
+2. **GitHub MCP** (`@modelcontextprotocol/server-github`)
+   - Repository operations, PR management
+   - **Use Case:** Automated GitHub workflows
+   - **Status:** ❌ Not needed (we use `gh` CLI and direct API calls)
+
+3. **PostgreSQL MCP** (`@modelcontextprotocol/server-postgres`)
+   - Direct database queries
+   - **Use Case:** Database exploration during development
+   - **Status:** ❌ Not needed (we use Supabase client directly)
+
+4. **SQLite MCP** (`@modelcontextprotocol/server-sqlite`)
+   - SQLite database operations
+   - **Use Case:** Local database development
+   - **Status:** ❌ Not needed (we use PostgreSQL/Supabase)
+
+5. **Memory MCP** (`@modelcontextprotocol/server-memory`)
+   - Persistent memory for AI assistants
+   - **Use Case:** Context retention across sessions
+   - **Status:** ⚠️ Could be useful, but not critical
+
+**Current recommendation:** ✅ Keep current setup. It's optimal for CompasScan's needs.
 
 ---
 
