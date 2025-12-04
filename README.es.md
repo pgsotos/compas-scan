@@ -155,26 +155,9 @@ uv run python tests/test_local.py "hubspot.com"
 
 ## 📚 Documentación
 
-La documentación completa está disponible en el directorio [`docs/`](docs/):
+La documentación completa está disponible en el directorio [`docs/`](docs/).
 
-### Inicio Rápido
-- [DOCKER.md](docs/DOCKER.md) - Configuración de Docker (recomendado)
-- [API_KEYS_GUIDE.md](docs/API_KEYS_GUIDE.md) - Configuración de API keys
-
-### Deployment
-- [deployment/](docs/deployment/) - Guías de deployment en Vercel
-  - [VERCEL_QUICK_SETUP.md](docs/deployment/VERCEL_QUICK_SETUP.md) - Setup rápido
-  - [VERCEL.md](docs/deployment/VERCEL.md) - Configuración completa
-
-### Configuración
-- [CACHING.md](docs/CACHING.md) - Configuración de caché Redis
-- [OBSERVABILITY.md](docs/OBSERVABILITY.md) - Configuración de Logfire + Sentry
-
-### Arquitectura
-- [MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md) - Evolución de la arquitectura
-- [CODE_QUALITY_ANALYSIS.md](docs/CODE_QUALITY_ANALYSIS.md) - Análisis de calidad de código
-
-📖 **Índice completo de documentación:** [docs/README.md](docs/README.md)
+📖 **📚 [Índice Completo de Documentación](docs/README.md)** - Guía completa de toda la documentación técnica, organizada por categoría, tarea y rol.
 
 ---
 

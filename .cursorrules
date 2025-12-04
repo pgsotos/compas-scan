@@ -61,6 +61,15 @@ The goal is to classify competitors into two types using a Hybrid approach (AI >
 - **Config:** Secrets always in `os.environ.get()`.
 - **Documentation:** ALWAYS update `README.md` when adding new features or changing architecture.
 
+## 5.1 Documentation Language Rules (MANDATORY) 📝
+- **Multi-language READMEs:** When modifying `README.md` or `docs/README.md`, you MUST update ALL language versions:
+  - `README.md` (English) ↔ `README.es.md` (Spanish)
+  - `docs/README.md` (English) ↔ `docs/README.es.md` (Spanish)
+- **All `/docs` content:** All documentation files in the `/docs` directory and subdirectories MUST be written in **English only**.
+  - Exception: Only `docs/README.md` and `docs/README.es.md` are multi-language.
+  - All other docs (DOCKER.md, API_KEYS_GUIDE.md, CACHING.md, etc.) are English-only.
+- **Language selector:** Both `docs/README.md` and `docs/README.es.md` must include a language selector at the top linking to each other.
+
 ## 6. Agent Protocol (MANDATORY) 🛡️
 Before writing code or applying fixes, you MUST follow this sequence:
 
