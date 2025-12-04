@@ -41,7 +41,7 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
   - Query repository information (PRs, issues, branches, commits)
   - Create issues
 - ❌ **Prohibited operations:**
-  - Merge pull requests (must use `gh pr merge` CLI - see Agent Protocol Step 8)
+  - Merge pull requests (must use `gh pr merge` CLI - see Section 6, Step 8: "STOP & ASK" before merging)
   - Close PRs without proper merge workflow
 - ✅ **Recommended:** Use `--read-only` mode for query operations
 
