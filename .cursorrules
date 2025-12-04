@@ -34,6 +34,20 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
   - `main`: Production releases (after staging approval)
 - **Commits:** In English and Conventional Commits format (`feat:`, `fix:`, `refactor:`, `docs:`).
 
+## 2.1 GitHub MCP Usage Rules (If Configured)
+- ✅ **GitHub MCP CAN be used to:**
+  - Create pull requests (automated PR creation)
+  - Query repository information (PRs, issues, branches, commits)
+  - Create issues
+  - Get PR/commit/branch details
+- ❌ **GitHub MCP MUST NOT be used to:**
+  - Merge pull requests (violates Agent Protocol Step 8)
+  - Close PRs without proper merge workflow
+- ✅ **All merges MUST:**
+  - Use `gh pr merge` CLI command (not MCP)
+  - Follow Agent Protocol Step 8: Ask user "PR created. Ready to merge?" before merging
+  - Require explicit user confirmation
+
 ## 3. Architecture & Modularity
 - `api/index.py`: Entrypoint.
 - `api/compas_core.py`: Main orchestrator. Decides whether to use AI or traditional search.
