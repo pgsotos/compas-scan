@@ -73,6 +73,9 @@ fi
 echo ""
 echo "🔑 GitHub Personal Access Token"
 echo "   Get your token at: https://github.com/settings/tokens"
+echo "   Supported token types:"
+echo "   - Classic PAT: ghp_xxxxxxxxxxxxx"
+echo "   - Fine-grained PAT: github_pat_xxxxxxxxxxxxx"
 echo "   Required scopes: repo (read and write)"
 echo ""
 while true; do
@@ -81,12 +84,14 @@ while true; do
     if [ -z "$GITHUB_TOKEN" ]; then
         echo "⚠️  Continuing without token (read-only mode recommended)..."
         break
-    elif [[ "$GITHUB_TOKEN" =~ ^ghp_ ]] || [[ "$GITHUB_TOKEN" =~ ^gho_ ]] || [[ "$GITHUB_TOKEN" =~ ^ghu_ ]]; then
+    elif [[ "$GITHUB_TOKEN" =~ ^ghp_ ]] || [[ "$GITHUB_TOKEN" =~ ^gho_ ]] || [[ "$GITHUB_TOKEN" =~ ^ghu_ ]] || [[ "$GITHUB_TOKEN" =~ ^github_pat_ ]]; then
         echo "✅ Valid token format detected"
         break
     else
-        echo "❌ Error: Token should start with 'ghp_', 'gho_', or 'ghu_'"
-        echo "   Example: ghp_xxxxxxxxxxxxx"
+        echo "❌ Error: Token should start with 'ghp_', 'gho_', 'ghu_', or 'github_pat_'"
+        echo "   Examples:"
+        echo "   - Classic PAT: ghp_xxxxxxxxxxxxx"
+        echo "   - Fine-grained PAT: github_pat_xxxxxxxxxxxxx"
         read -p "Try again? (y/n): " -n 1 -r
         echo ""
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
