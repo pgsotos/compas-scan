@@ -155,13 +155,7 @@ Once configured and Cursor is restarted, you can:
 - **Status:** Configured and working
 - **Config:** `~/.cursor/mcp.json`
 
-### 2. Browser MCP ✅
-- **Purpose:** Web navigation and interaction (for AI assistant)
-- **Status:** Built-in to Cursor IDE (available but not used in project code)
-- **Tools:** `browser_navigate`, `browser_snapshot`, `browser_click`, etc.
-- **Note:** Project uses direct HTTP APIs for production (`api/search_clients.py`)
-
-### 3. Runtime Clients (Not MCPs)
+### 2. Runtime Clients (Not MCPs)
 - **Location:** `api/search_clients.py`, `api/db.py`
 - **Note:** These are runtime Python clients, not MCP servers
 - **Purpose:** Direct HTTP API calls for production use

@@ -42,26 +42,6 @@ MCPs are IDE tools for AI assistants, not runtime services.
 
 ---
 
-## 🌐 Built-in Cursor MCPs
-
-### Browser MCP ✅
-- **Status:** Built-in to Cursor IDE (available but not used in project code)
-- **Purpose:** Web navigation and interaction for AI assistant
-- **Tools Available:**
-  - `browser_navigate` - Navigate to URLs
-  - `browser_snapshot` - Capture page accessibility snapshot
-  - `browser_click` - Click elements
-  - `browser_type` - Type text
-  - `browser_take_screenshot` - Capture screenshots
-  - And more...
-
-**Usage:** 
-- Automatically available in Cursor IDE for AI assistant
-- **Not used in production code** - Project uses direct HTTP APIs (`api/search_clients.py`)
-- Only used by AI assistant when needed (e.g., researching documentation)
-
----
-
 ## 🔍 Other MCPs Available (Not Configured)
 
 ### shadcn MCP Server
@@ -83,7 +63,6 @@ MCPs are IDE tools for AI assistants, not runtime services.
 | MCP Server | Type | Status | Location | Purpose |
 |------------|------|--------|----------|---------|
 | **Context7** | Real MCP | ✅ Active | `~/.cursor/mcp.json` | Library documentation |
-| **Browser** | Built-in | ✅ Available | Cursor IDE | Web navigation (AI assistant only) |
 | **Brave Search** | Runtime client | ✅ Working | `api/search_clients.py` | Web search (HTTP API) |
 | **PostgreSQL** | Runtime client | ✅ Working | `api/db.py` | Database (Supabase) |
 | **URL Validation** | Runtime client | ✅ Working | `api/compas_core.py` | HTTP validation (httpx) |
@@ -97,7 +76,6 @@ MCPs are IDE tools for AI assistants, not runtime services.
 
 **For Development:**
 - ✅ Context7 MCP: Essential for up-to-date documentation
-- ✅ Browser MCP: Built-in, available for AI assistant (not used in code)
 - ✅ Runtime clients: Handle production operations (HTTP APIs)
 
 **Not Needed:**
