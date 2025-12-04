@@ -97,8 +97,31 @@ Script para actualizar el token de GitHub MCP con permisos completos.
 
 ---
 
+### `configure-branch-protections.sh`
+Script para configurar protecciones de rama según Gitflow (todas las ramas).
+
+**Uso:**
+```bash
+./scripts/configure-branch-protections.sh
+```
+
+**Configuración aplicada:**
+- **develop:** 0 reviews, iteración rápida (GitHub MCP puede mergear directamente)
+- **staging:** 1 review, validación QA con checks estrictos de Vercel
+- **main:** 2 reviews, seguridad máxima con enforce_admins habilitado
+
+**Características:**
+- Configura todas las ramas de una vez
+- Usa GitHub API directamente
+- Aplica mejores prácticas de Gitflow
+- Permite GitHub MCP trabajar eficientemente
+
+**Nota:** Ver `docs/BRANCH_PROTECTION_GUIDE.md` para detalles completos.
+
+---
+
 ### `adjust-branch-protection.sh`
-Script interactivo para ajustar las protecciones de rama en develop.
+Script interactivo para ajustar las protecciones de rama en develop (individual).
 
 **Uso:**
 ```bash
