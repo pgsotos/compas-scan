@@ -28,17 +28,41 @@ Script para actualizar la API key de Context7 MCP.
 ./scripts/update-context7-key.sh <tu-api-key>
 ```
 
+### `install-github-mcp-binary.sh`
+Script para instalar el binario de GitHub MCP Server como alternativa a Docker.
+
+**Uso:**
+```bash
+./scripts/install-github-mcp-binary.sh
+```
+
+**Características:**
+- Detecta automáticamente OS (darwin/linux) y arquitectura (amd64/arm64)
+- Descarga binario oficial desde GitHub releases
+- Instala en `~/.local/bin/`
+- Verifica instalación y configuración del PATH
+
+**Nota:** Ejecutar antes de `setup-github-mcp.sh` si prefieres usar el binario en lugar de Docker.
+
+---
+
 ### `setup-github-mcp.sh`
 Script para configurar GitHub MCP en Cursor IDE.
 
 **Uso:**
 ```bash
+# Opción 1: Instalar binario primero (recomendado)
+./scripts/install-github-mcp-binary.sh
+./scripts/setup-github-mcp.sh
+
+# Opción 2: Usar Docker (requiere Docker Desktop)
 ./scripts/setup-github-mcp.sh
 ```
 
 **Características:**
-- Soporta binario o Docker
+- Soporta binario (instalar con `install-github-mcp-binary.sh`) o Docker
 - Configuración de token de GitHub (opcional)
+- Soporta tokens clásicos y fine-grained (github_pat_)
 - Modo read-only (recomendado)
 - Integra con configuración MCP existente
 
