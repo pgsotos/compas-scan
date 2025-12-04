@@ -1,5 +1,15 @@
 # 🔍 GitHub MCP Compatibility Analysis
 
+⚠️ **UPDATE:** The npm package `@modelcontextprotocol/server-github` has been **DEPRECATED** (archived May 29, 2025).
+
+This document is kept for reference, but **GitHub MCP is no longer recommended** due to deprecation.
+
+**Current Recommendation:** Use `gh` CLI instead, which is already configured and working perfectly with `.cursorrules`.
+
+---
+
+## 📋 Original Analysis (For Reference)
+
 Analysis of potential conflicts between GitHub MCP and CompasScan's `.cursorrules` Gitflow requirements.
 
 ---

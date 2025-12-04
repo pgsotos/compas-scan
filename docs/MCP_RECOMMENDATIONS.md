@@ -19,12 +19,26 @@ CompasScan is a competitive intelligence tool that:
 
 ## ✅ Recommended MCPs
 
-### 1. **GitHub MCP** ⭐ Highly Recommended
+### 1. **GitHub MCP** ❌ Currently Unavailable
 
 **Package:** `@modelcontextprotocol/server-github`  
-**Official:** ✅ Yes
+**Status:** ⚠️ **DEPRECATED** (Archived May 29, 2025)
 
-**Use Cases:**
+**Note:** The npm package `@modelcontextprotocol/server-github` has been deprecated and moved to `servers-archived` repository. It is no longer maintained.
+
+**Alternatives:**
+1. **GitHub Official MCP Server** (Preview, April 2025)
+   - Rewritten in Go
+   - Enhanced features: customizable tool descriptions, code scanning support
+   - **Status:** ⚠️ Preview/Unstable - May not be publicly available yet
+   - **Repository:** Check GitHub's official announcements
+
+2. **Git MCP Server** (`@modelcontextprotocol/server-git`)
+   - General Git repository operations
+   - Read, search, and manipulate Git repos
+   - **Status:** ✅ Available but more limited than GitHub-specific features
+
+**Use Cases (If Available):**
 - **CI/CD Operations**: Automate PR creation, merging, and deployment workflows
 - **Repository Management**: Query repository stats, issues, PRs during development
 - **Code Review**: AI-assisted code review and suggestions
@@ -36,24 +50,12 @@ CompasScan is a competitive intelligence tool that:
 - Query repository metrics and history
 - Integrate with deployment pipelines
 
-**Setup:**
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github",
-        "--token",
-        "ghp_your_github_token"
-      ]
-    }
-  }
-}
-```
+**Current Recommendation:** 
+- ❌ **Skip GitHub MCP** - Package is deprecated, official replacement not stable yet
+- ✅ **Use `gh` CLI** - Already working, reliable, and follows `.cursorrules` requirements
+- ⚠️ **Monitor** - Watch for GitHub's official MCP server release
 
-**Status:** ⚠️ **Consider adding** - Would streamline Gitflow automation
+**Status:** ❌ **Not recommended** - Use `gh` CLI instead (already configured)
 
 ---
 
@@ -197,7 +199,7 @@ CompasScan is a competitive intelligence tool that:
 
 | MCP | Priority | Use Case | Status |
 |-----|----------|----------|--------|
-| **GitHub MCP** | ⭐⭐⭐ High | CI/CD automation, Gitflow | ⚠️ Consider |
+| **GitHub MCP** | ❌ Deprecated | CI/CD automation, Gitflow | ❌ Deprecated (use `gh` CLI) |
 | **Memory MCP** | ⭐⭐ Medium | Context retention | ⚠️ Consider |
 | **Sentry MCP** | ⭐⭐ Medium | Error analysis | ⚠️ Research |
 | **PostgreSQL MCP** | ⭐ Low | Dev database exploration | ⚠️ Optional |
@@ -207,11 +209,11 @@ CompasScan is a competitive intelligence tool that:
 
 ## 🚀 Implementation Plan
 
-### Phase 1: High Priority
-1. **GitHub MCP** - Automate Gitflow workflow
-   - Setup: `~/.cursor/mcp.json`
-   - Use: PR creation, merging, release management
-   - Benefit: Streamline deployment process
+### Phase 1: Medium Priority (GitHub MCP Deprecated)
+~~1. **GitHub MCP** - Automate Gitflow workflow~~
+   - ❌ **SKIPPED** - Package deprecated, use `gh` CLI instead
+   - ✅ **Current solution:** `gh` CLI already configured and working
+   - ✅ **Benefit:** Already streamlined, no MCP needed
 
 ### Phase 2: Medium Priority
 2. **Memory MCP** - Improve AI context
