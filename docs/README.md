@@ -52,6 +52,12 @@ Central index of all technical documentation for the project.
 - Cursor integration
 - API key updates
 
+📊 [**MCP_STATUS.md**](./MCP_STATUS.md) - Complete MCP status review
+- Currently configured MCPs
+- Python wrappers vs real MCPs
+- Available but not configured MCPs
+- Recommendations
+
 ### 📊 Observability & Monitoring
 
 📈 [**OBSERVABILITY.md**](./OBSERVABILITY.md) - Complete monitoring
