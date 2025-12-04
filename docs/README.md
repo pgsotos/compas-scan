@@ -56,7 +56,13 @@ Central index of all technical documentation for the project.
 - Currently configured MCPs
 - Python wrappers vs real MCPs
 - Available but not configured MCPs
-- Recommendations
+- Current recommendations
+
+🔌 [**MCP_RECOMMENDATIONS.md**](./MCP_RECOMMENDATIONS.md) - MCP integration recommendations
+- GitHub MCP for CI/CD automation
+- Memory MCP for context retention
+- Sentry MCP for error analysis
+- Priority-based implementation plan
 
 ### 📊 Observability & Monitoring
 
