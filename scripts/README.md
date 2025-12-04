@@ -79,6 +79,42 @@ Script para configurar Memory MCP en Cursor IDE.
 - No requiere API keys
 - Integra con configuración MCP existente
 
+### `fix-github-mcp-token.sh`
+Script para actualizar el token de GitHub MCP con permisos completos.
+
+**Uso:**
+```bash
+./scripts/fix-github-mcp-token.sh
+```
+
+**Características:**
+- Obtiene token del gh CLI (con permisos completos)
+- Crea backup automático de la configuración
+- Actualiza token en `~/.cursor/mcp.json`
+- Verifica scopes del token
+
+**Nota:** Ejecutar si GitHub MCP falla con error 403 (permisos insuficientes).
+
+---
+
+### `adjust-branch-protection.sh`
+Script interactivo para ajustar las protecciones de rama en develop.
+
+**Uso:**
+```bash
+./scripts/adjust-branch-protection.sh
+```
+
+**Opciones:**
+1. Mantener protecciones actuales (usar `--admin` para mergear)
+2. Deshabilitar enforce_admins (admins pueden mergear sin restricciones)
+3. Eliminar todas las protecciones (no recomendado)
+4. Eliminar requisito de reviews (recomendado para solo dev)
+
+**Nota:** Ver `docs/BRANCH_PROTECTION_GUIDE.md` para configuraciones recomendadas.
+
+---
+
 ### `check-mcp-status.sh`
 Script para verificar el estado de los MCPs configurados en Cursor.
 
@@ -92,7 +128,7 @@ Script para verificar el estado de los MCPs configurados en Cursor.
 - Package managers disponibles (bunx/npx)
 - Estado de todos los MCPs configurados:
   - Context7 MCP y API key
-  - GitHub MCP y token
+  - GitHub MCP y token (binario o Docker)
   - Memory MCP
 - Notas y próximos pasos
 
