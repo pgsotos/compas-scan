@@ -160,10 +160,10 @@ Once configured and Cursor is restarted, you can:
 - **Status:** Built-in to Cursor IDE
 - **Tools:** `browser_navigate`, `browser_snapshot`, `browser_click`, etc.
 
-### 3. Python MCP Clients (Not Real MCPs)
-- **Location:** `api/mcp_clients.py`
-- **Note:** These are Python wrappers, not actual MCP servers
-- **Purpose:** Runtime API clients with graceful fallback
+### 3. Runtime Clients (Not MCPs)
+- **Location:** `api/search_clients.py`, `api/db.py`
+- **Note:** These are runtime Python clients, not MCP servers
+- **Purpose:** Direct HTTP API calls for production use
 
 ## 🔗 Resources
 

@@ -29,33 +29,16 @@ Complete review of Model Context Protocol (MCP) servers configured and available
 
 ---
 
-## 🚫 NOT Real MCPs (Python Wrappers)
+## 📝 Note: Runtime Clients vs MCPs
 
-The following are **NOT actual MCP servers** but Python wrappers in `api/mcp_clients.py`:
+**Important:** Runtime operations use direct HTTP API calls, not MCP servers.
 
-### Brave Search Client
-- **Location:** `api/mcp_clients.py::BraveSearchClient`
-- **Type:** Python HTTP client (direct API calls)
-- **Note:** Uses Brave Search API directly, not an MCP server
-- **Status:** ✅ Working (uses `BRAVE_API_KEY`)
+- **Brave Search:** Implemented in `api/search_clients.py` (direct HTTP API)
+- **Supabase/PostgreSQL:** Implemented in `api/db.py` (direct Supabase client)
+- **URL Validation:** Implemented inline in `api/compas_core.py` (direct httpx)
 
-### PostgreSQL Analytics
-- **Location:** `api/mcp_clients.py::PostgreSQLAnalytics`
-- **Type:** Python Supabase client wrapper
-- **Note:** Uses Supabase Python client, not an MCP server
-- **Status:** ✅ Working (uses Supabase connection)
-
-### Fetch Client
-- **Location:** `api/mcp_clients.py::FetchClient`
-- **Type:** Python HTTP client (httpx)
-- **Note:** Direct HTTP requests, not an MCP server
-- **Status:** ✅ Working
-
-**Why these exist:**
-The code comments clarify:
-> "MCPs are managed by Cursor IDE. This module provides Python wrappers for when MCPs are available, with graceful fallback to traditional methods."
-
-These are **runtime Python clients**, not IDE MCP servers.
+These are **runtime Python clients** for production use, not IDE MCP servers.
+MCPs are IDE tools for AI assistants, not runtime services.
 
 ---
 
@@ -98,9 +81,9 @@ These are **runtime Python clients**, not IDE MCP servers.
 |------------|------|--------|----------|---------|
 | **Context7** | Real MCP | ✅ Active | `~/.cursor/mcp.json` | Library documentation |
 | **Browser** | Built-in | ✅ Active | Cursor IDE | Web navigation |
-| **Brave Search** | Python wrapper | ✅ Working | `api/mcp_clients.py` | Web search (runtime) |
-| **PostgreSQL** | Python wrapper | ✅ Working | `api/mcp_clients.py` | Analytics (runtime) |
-| **Fetch** | Python wrapper | ✅ Working | `api/mcp_clients.py` | URL validation (runtime) |
+| **Brave Search** | Runtime client | ✅ Working | `api/search_clients.py` | Web search (HTTP API) |
+| **PostgreSQL** | Runtime client | ✅ Working | `api/db.py` | Database (Supabase) |
+| **URL Validation** | Runtime client | ✅ Working | `api/compas_core.py` | HTTP validation (httpx) |
 | **shadcn** | Real MCP | ❌ Not configured | N/A | Component library |
 
 ---
