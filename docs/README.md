@@ -66,6 +66,8 @@ Central index of all technical documentation for the project.
 📁 **[reports/](./reports/)** - Historical reports and test results
 - [SESSION_SUMMARY.md](./reports/SESSION_SUMMARY.md) - Development session summaries
 - [TEST_REPORT.md](./reports/TEST_REPORT.md) - Test execution reports
+- [FRONTEND_PLAN.md](./reports/FRONTEND_PLAN.md) - Original frontend plan (completed)
+- [CODE_QUALITY_ANALYSIS.md](./reports/CODE_QUALITY_ANALYSIS.md) - Code quality analysis (completed)
 
 ### 📖 Architecture & History
 
@@ -75,16 +77,6 @@ Central index of all technical documentation for the project.
 - Async/await refactoring
 - Docker containerization
 - Redis caching layer
-
-🔍 [**CODE_QUALITY_ANALYSIS.md**](./CODE_QUALITY_ANALYSIS.md) - Code quality analysis
-- Code smells identification
-- Refactoring recommendations
-- Best practices
-
-🎨 [**FRONTEND_PLAN.md**](./FRONTEND_PLAN.md) - Original frontend plan
-- Initial design
-- Tech stack (Next.js + Tailwind)
-- Main components
 
 ---
 

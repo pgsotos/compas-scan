@@ -66,6 +66,8 @@
 📁 **[reports/](./reports/)** - Reportes históricos y resultados de tests
 - [SESSION_SUMMARY.md](./reports/SESSION_SUMMARY.md) - Resúmenes de sesiones de desarrollo
 - [TEST_REPORT.md](./reports/TEST_REPORT.md) - Reportes de ejecución de tests
+- [FRONTEND_PLAN.md](./reports/FRONTEND_PLAN.md) - Plan original del frontend (completado)
+- [CODE_QUALITY_ANALYSIS.md](./reports/CODE_QUALITY_ANALYSIS.md) - Análisis de calidad de código (completado)
 
 ### 📖 Architecture & History
 
@@ -75,16 +77,6 @@
 - Refactoring async/await
 - Containerización con Docker
 - Capa de caché Redis
-
-🔍 [**CODE_QUALITY_ANALYSIS.md**](./CODE_QUALITY_ANALYSIS.md) - Análisis de calidad de código
-- Identificación de code smells
-- Recomendaciones de refactoring
-- Mejores prácticas
-
-🎨 [**FRONTEND_PLAN.md**](./FRONTEND_PLAN.md) - Plan original del frontend
-- Diseño inicial
-- Stack técnico (Next.js + Tailwind)
-- Componentes principales
 
 ---
 
