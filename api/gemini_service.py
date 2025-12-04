@@ -54,10 +54,10 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
     # Construir keywords context e industria
     keywords_context = ""
     industry_context = ""
-    
+
     if brand_context.industry_description:
         industry_context = f"\n    - Industry/Business: {brand_context.industry_description}"
-    
+
     if brand_context.keywords:
         # Filtrar el país de las keywords para evitar duplicación
         filtered_keywords = [kw for kw in brand_context.keywords if kw.lower() != (brand_context.country or "").lower()]
@@ -66,19 +66,19 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
 
     prompt = f"""
     Act as an expert in Market Intelligence and Digital Competition.
-    
+
     STEP 1 - ANALYZE THE BRAND:
     Brand Name: "{brand_context.name}"
     Official Website: {brand_context.url}
     {geo_context}
     Business Context:{industry_context}{keywords_context}
-    
+
     CRITICAL: The brand operates in the industry described above. Focus ONLY on competitors in this EXACT same industry.
     Do NOT confuse the brand with unrelated industries based on domain name or keywords alone.
-    
+
     STEP 2 - IDENTIFY COMPETITORS:
     Find direct and indirect competitors that operate in the SAME industry/niche as {brand_context.name}.
-    
+
     Business Rules:
     1. HDA (High Domain Authority): Massive competitors, industry leaders, or highly recognized brands IN THE SAME INDUSTRY.
     2. LDA (Low Domain Authority): Niche competitors, emerging startups, or specific alternatives IN THE SAME INDUSTRY.

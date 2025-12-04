@@ -117,4 +117,3 @@ class BraveSearchClient:
 
 # Global instance
 brave_search = BraveSearchClient()
-
