@@ -80,6 +80,18 @@ Central index of all technical documentation for the project.
 - Redundancy analysis with Gitflow
 - Practical examples
 
+🛡️ [**BRANCH_PROTECTION_GUIDE.md**](./BRANCH_PROTECTION_GUIDE.md) - Branch protection management
+- Current configuration per branch
+- Recommended settings for Gitflow
+- Managing protection rules
+- GitHub MCP considerations
+- Troubleshooting merge issues
+
+🧪 [**MCP_TEST_LOG.md**](./MCP_TEST_LOG.md) - GitHub MCP test results
+- Merge capability verification
+- Token and permission tests
+- All tests passed ✅
+
 ### 📊 Observability & Monitoring
 
 📈 [**OBSERVABILITY.md**](./OBSERVABILITY.md) - Complete monitoring

@@ -58,6 +58,34 @@
 - MCPs disponibles pero no configurados
 - Recomendaciones
 
+🔌 [**MCP_RECOMMENDATIONS.md**](./MCP_RECOMMENDATIONS.md) - Recomendaciones de integración MCP
+- GitHub MCP para automatización CI/CD
+- Memory MCP para retención de contexto
+- Sentry MCP para análisis de errores
+- Plan de implementación basado en prioridades
+
+🔍 [**GITHUB_MCP_COMPATIBILITY.md**](./GITHUB_MCP_COMPATIBILITY.md) - Análisis de compatibilidad de GitHub MCP
+- Compatibilidad con reglas de Gitflow
+- Análisis de conflictos
+- Configuración recomendada
+
+🔍 [**GITHUB_MCP_INTEGRATION_ANALYSIS.md**](./GITHUB_MCP_INTEGRATION_ANALYSIS.md) - Análisis de integración de GitHub MCP
+- Qué significa la integración
+- Análisis de redundancia con Gitflow
+- Ejemplos prácticos
+
+🛡️ [**BRANCH_PROTECTION_GUIDE.md**](./BRANCH_PROTECTION_GUIDE.md) - Guía de protección de ramas
+- Configuración actual por rama
+- Configuraciones recomendadas para Gitflow
+- Gestión de reglas de protección
+- Consideraciones de GitHub MCP
+- Solución de problemas de merge
+
+🧪 [**MCP_TEST_LOG.md**](./MCP_TEST_LOG.md) - Resultados de pruebas de GitHub MCP
+- Verificación de capacidad de merge
+- Pruebas de token y permisos
+- Todas las pruebas pasadas ✅
+
 ### 📊 Observability & Monitoring
 
 📈 [**OBSERVABILITY.md**](./OBSERVABILITY.md) - Monitoreo completo
