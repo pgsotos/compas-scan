@@ -52,6 +52,18 @@ Central index of all technical documentation for the project.
 - Cursor integration
 - API key updates
 
+📊 [**MCP_STATUS.md**](./MCP_STATUS.md) - Complete MCP status review
+- Currently configured MCPs
+- Python wrappers vs real MCPs
+- Available but not configured MCPs
+- Current recommendations
+
+🔌 [**MCP_RECOMMENDATIONS.md**](./MCP_RECOMMENDATIONS.md) - MCP integration recommendations
+- GitHub MCP for CI/CD automation
+- Memory MCP for context retention
+- Sentry MCP for error analysis
+- Priority-based implementation plan
+
 ### 📊 Observability & Monitoring
 
 📈 [**OBSERVABILITY.md**](./OBSERVABILITY.md) - Complete monitoring
