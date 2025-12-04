@@ -12,8 +12,26 @@ Script interactivo para configurar variables de entorno en el archivo `.env`.
 ./scripts/setup-env-vars.sh
 ```
 
+### `detect-ide.sh`
+Script utilitario para detectar paths de configuración MCP del IDE.
+
+**Uso:**
+```bash
+source scripts/detect-ide.sh
+MCP_CONFIG_FILE=$(get_mcp_config_path)
+```
+
+**Características:**
+- Detecta automáticamente el path del MCP config
+- Compatible con cualquier IDE MCP-compatible
+- Usa terminología genérica "IDE"
+
+**Nota:** Usado internamente por otros scripts de setup.
+
+---
+
 ### `setup-context7.sh`
-Script para configurar Context7 MCP en Cursor IDE.
+Script para configurar Context7 MCP en el IDE.
 
 **Uso:**
 ```bash
