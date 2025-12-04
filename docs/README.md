@@ -2,6 +2,8 @@
 
 Central index of all technical documentation for the project.
 
+**🌐 Language / Idioma:** **English** | [Español](README.es.md)
+
 ---
 
 ## 🚀 Getting Started
