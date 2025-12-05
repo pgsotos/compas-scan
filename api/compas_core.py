@@ -287,6 +287,29 @@ async def get_brand_context(user_input: str) -> BrandContext:
     # 2. Extract keywords and industry description
     keywords, industry_description = await _extract_keywords_from_website(url, brand_name)
     
+    # 2.5. Enrich industry_description if keywords indicate industry but description doesn't mention it
+    if keywords and industry_description:
+        keywords_lower = [kw.lower() for kw in keywords]
+        desc_lower = industry_description.lower()
+        
+        # Industry-specific keyword patterns
+        industry_patterns = {
+            ("outdoor", "clothing", "apparel", "gear", "equipment"): "outdoor clothing and apparel",
+            ("payment", "gateway", "fintech", "processing"): "payment processing and financial services",
+            ("software", "saas", "platform", "application"): "software and technology",
+            ("restaurant", "food", "dining", "cuisine"): "food service and dining",
+            ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
+        }
+        
+        # Check if keywords match an industry pattern but description doesn't mention it
+        for pattern_keywords, industry_name in industry_patterns.items():
+            if any(kw in keywords_lower for kw in pattern_keywords):
+                if industry_name not in desc_lower and not any(kw in desc_lower for kw in pattern_keywords):
+                    # Enrich description with explicit industry mention
+                    industry_description = f"{brand_name} - {industry_name} company. {industry_description}"
+                    print(f"✅ Enriched industry_description with explicit industry: {industry_name}")
+                    break
+    
     # 3. Detect geo-location from TLD
     detected_country, detected_tld = _detect_geo_from_tld(url)
     if detected_country:
