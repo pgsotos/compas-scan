@@ -166,15 +166,19 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
                 print(f"⚠️ Detected loading/redirect page for {brand_name}. Using fallback strategy.")
                 # Try to get better context from web search as fallback
                 try:
-                    search_query = f"{brand_name} company industry business"
-                    search_results = await search_google_api(search_query, num=3)
+                    # More specific search query to get industry context - explicitly ask about products
+                    search_query = f"{brand_name} what products does {brand_name} sell what industry"
+                    search_results = await search_google_api(search_query, num=5)
                     if search_results:
-                        # Extract keywords from search snippets
-                        snippets = " ".join([r.get("snippet", "") for r in search_results[:3]])
+                        # Extract keywords from search snippets and titles
+                        all_text = " ".join([
+                            r.get("title", "") + " " + r.get("snippet", "")
+                            for r in search_results[:5]
+                        ])
                         fallback_keywords = extract_keywords_from_text(
-                            f"{brand_name} {snippets}", top_n=5
+                            f"{brand_name} {all_text}", top_n=10
                         )
-                        # Filter out brand name and generic terms
+                        # Filter out brand name and generic terms, prioritize industry-specific terms
                         brand_lower = brand_name.lower()
                         filtered = [
                             kw
@@ -183,10 +187,21 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
                             and brand_lower not in kw
                             and kw not in STOP_WORDS
                             and kw not in FAMOUS_DOMAINS
+                            and len(kw) > 3  # Filter very short words
                         ][:5]
                         if filtered:
                             print(f"✅ Fallback keywords from search: {', '.join(filtered)}")
-                            return filtered, f"{brand_name} - Information from web search"
+                            # Build explicit industry description from first 2-3 results
+                            # Prioritize snippets that mention products/industry explicitly
+                            industry_parts = []
+                            for result in search_results[:3]:
+                                snippet = result.get("snippet", "")
+                                title = result.get("title", "")
+                                # Look for product/industry mentions
+                                if any(word in snippet.lower() for word in ["sell", "product", "industry", "company", "brand"]):
+                                    industry_parts.append(snippet[:150])
+                            industry_desc = " ".join(industry_parts[:2])[:300] if industry_parts else search_results[0].get("snippet", "")[:200]
+                            return filtered, f"{brand_name} - {industry_desc}"
                 except Exception as e:
                     print(f"⚠️ Fallback search failed: {e}")
                 
@@ -256,12 +271,30 @@ async def get_brand_context(user_input: str) -> BrandContext:
     """
     # Check cache first
     cached = await cache.get_brand_context(user_input)
+    context_from_cache = None
     if cached:
         try:
-            return BrandContext(**cached)
+            context_from_cache = BrandContext(**cached)
         except (ValueError, TypeError) as e:
             print(f"⚠️ Error deserializing context cache: {e}")
     
+    # If we have cached context, check if it needs enrichment
+    if context_from_cache:
+        needs_enrichment = _needs_industry_enrichment(
+            context_from_cache.keywords, 
+            context_from_cache.industry_description or ""
+        )
+        
+        if needs_enrichment:
+            print(f"🔄 Cached context needs enrichment. Invalidating cache and regenerating...")
+            # Invalidate cache to force regeneration with enrichment
+            await cache.invalidate_brand(user_input)
+            context_from_cache = None  # Force regeneration
+        else:
+            # Cache is good, return it
+            return context_from_cache
+    
+    # No cache or cache invalidated - generate fresh context
     print(f"🧠 Analizando contexto para: '{user_input}'...")
     
     # 1. Detect URL or brand name
@@ -271,6 +304,21 @@ async def get_brand_context(user_input: str) -> BrandContext:
     
     # 2. Extract keywords and industry description
     keywords, industry_description = await _extract_keywords_from_website(url, brand_name)
+    
+    # 2.5. Enrich industry_description if keywords indicate industry but description doesn't mention it
+    original_desc = industry_description
+    industry_description = _enrich_industry_description(brand_name, keywords, industry_description)
+    
+    # If enrichment was applied, invalidate Gemini cache to force fresh query with new context
+    if industry_description != original_desc:
+        # Invalidate both by URL and by name to ensure cache is cleared
+        # Gemini cache uses: url or brand_name (same logic)
+        cache_key = url or brand_name
+        await cache.invalidate_brand(cache_key)
+        # Also invalidate by brand_name in case URL was used
+        if url and url != brand_name:
+            await cache.invalidate_brand(brand_name)
+        print(f"🔄 Invalidated Gemini cache due to industry enrichment (key: {cache_key})")
     
     # 3. Detect geo-location from TLD
     detected_country, detected_tld = _detect_geo_from_tld(url)
@@ -287,10 +335,76 @@ async def get_brand_context(user_input: str) -> BrandContext:
         industry_description=industry_description if industry_description else None,
     )
     
-    # Save to cache
+    # Save to cache (with enrichment applied)
     await cache.set_brand_context(user_input, context.model_dump())
     
     return context
+
+
+def _needs_industry_enrichment(keywords: list[str], industry_description: str) -> bool:
+    """
+    Check if industry_description needs enrichment based on keywords.
+    
+    Returns True if keywords indicate an industry but description doesn't mention it.
+    """
+    if not keywords or not industry_description:
+        return False
+    
+    keywords_lower = [kw.lower() for kw in keywords]
+    desc_lower = industry_description.lower()
+    
+    industry_patterns = {
+        ("outdoor", "clothing", "apparel", "gear", "equipment"): "outdoor clothing and apparel",
+        ("payment", "gateway", "fintech", "processing"): "payment processing and financial services",
+        ("software", "saas", "platform", "application"): "software and technology",
+        ("restaurant", "food", "dining", "cuisine"): "food service and dining",
+        ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
+    }
+    
+    for pattern_keywords, industry_name in industry_patterns.items():
+        if any(kw in keywords_lower for kw in pattern_keywords):
+            # Only return True if the explicit industry phrase is missing
+            # This ensures we enrich even if individual keywords are present
+            if industry_name not in desc_lower:
+                return True
+    
+    return False
+
+
+def _enrich_industry_description(brand_name: str, keywords: list[str], industry_description: str | None) -> str | None:
+    """
+    Enrich industry_description if keywords indicate industry but description doesn't mention it.
+    
+    Returns enriched description or original if no enrichment needed.
+    """
+    if not keywords or not industry_description:
+        return industry_description
+    
+    keywords_lower = [kw.lower() for kw in keywords]
+    desc_lower = industry_description.lower()
+    
+    # Industry-specific keyword patterns
+    industry_patterns = {
+        ("outdoor", "clothing", "apparel", "gear", "equipment"): "outdoor clothing and apparel",
+        ("payment", "gateway", "fintech", "processing"): "payment processing and financial services",
+        ("software", "saas", "platform", "application"): "software and technology",
+        ("restaurant", "food", "dining", "cuisine"): "food service and dining",
+        ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
+    }
+    
+    # Check if keywords match an industry pattern but description doesn't explicitly mention the industry
+    # We enrich if the explicit industry phrase is missing, even if individual keywords are present
+    for pattern_keywords, industry_name in industry_patterns.items():
+        if any(kw in keywords_lower for kw in pattern_keywords):
+            # Only enrich if the explicit industry phrase is NOT in the description
+            # This ensures Gemini gets clear industry context even if keywords are scattered
+            if industry_name not in desc_lower:
+                # Enrich description with explicit industry mention
+                enriched = f"{brand_name} - {industry_name} company. {industry_description}"
+                print(f"✅ Enriched industry_description with explicit industry: {industry_name}")
+                return enriched
+    
+    return industry_description
 
 
 def _normalize_brave_results(brave_results: list[dict]) -> list[dict]:
