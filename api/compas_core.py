@@ -306,7 +306,14 @@ async def get_brand_context(user_input: str) -> BrandContext:
     keywords, industry_description = await _extract_keywords_from_website(url, brand_name)
     
     # 2.5. Enrich industry_description if keywords indicate industry but description doesn't mention it
+    original_desc = industry_description
     industry_description = _enrich_industry_description(brand_name, keywords, industry_description)
+    
+    # If enrichment was applied, invalidate Gemini cache to force fresh query with new context
+    if industry_description != original_desc:
+        cache_key = url or brand_name
+        await cache.invalidate_brand(cache_key)  # This invalidates all cache entries for the brand
+        print(f"🔄 Invalidated Gemini cache due to industry enrichment")
     
     # 3. Detect geo-location from TLD
     detected_country, detected_tld = _detect_geo_from_tld(url)
