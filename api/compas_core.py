@@ -102,6 +102,40 @@ async def _find_official_site_url(brand_name: str) -> str:
     return f"https://www.{brand_slug}.com"
 
 
+def _is_loading_page(title: str, meta_desc: str) -> bool:
+    """
+    Detect if the page is a loading/redirect page instead of actual content.
+    
+    Args:
+        title: Page title
+        meta_desc: Meta description
+        
+    Returns:
+        True if page appears to be a loading/redirect page
+    """
+    if not title:
+        return False
+    
+    title_lower = title.lower()
+    loading_indicators = [
+        "hang tight",
+        "routing",
+        "redirecting",
+        "loading",
+        "please wait",
+        "checkout",
+        "processing",
+        "please hold",
+    ]
+    
+    # Check if title contains loading indicators
+    for indicator in loading_indicators:
+        if indicator in title_lower:
+            return True
+    
+    return False
+
+
 async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[list[str], str]:
     """
     Extract keywords and industry description from website HTML.
@@ -126,6 +160,39 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
             title = soup.title.string if soup.title else ""
             meta_desc_tag = soup.find("meta", attrs={"name": "description"})
             meta_desc_text = meta_desc_tag.get("content", "") if meta_desc_tag else ""
+            
+            # Detect loading/redirect pages
+            if _is_loading_page(title, meta_desc_text):
+                print(f"⚠️ Detected loading/redirect page for {brand_name}. Using fallback strategy.")
+                # Try to get better context from web search as fallback
+                try:
+                    search_query = f"{brand_name} company industry business"
+                    search_results = await search_google_api(search_query, num=3)
+                    if search_results:
+                        # Extract keywords from search snippets
+                        snippets = " ".join([r.get("snippet", "") for r in search_results[:3]])
+                        fallback_keywords = extract_keywords_from_text(
+                            f"{brand_name} {snippets}", top_n=5
+                        )
+                        # Filter out brand name and generic terms
+                        brand_lower = brand_name.lower()
+                        filtered = [
+                            kw
+                            for kw in fallback_keywords
+                            if kw != brand_lower
+                            and brand_lower not in kw
+                            and kw not in STOP_WORDS
+                            and kw not in FAMOUS_DOMAINS
+                        ][:5]
+                        if filtered:
+                            print(f"✅ Fallback keywords from search: {', '.join(filtered)}")
+                            return filtered, f"{brand_name} - Information from web search"
+                except Exception as e:
+                    print(f"⚠️ Fallback search failed: {e}")
+                
+                # Ultimate fallback: use brand name only to avoid confusion
+                print(f"⚠️ Using minimal fallback: brand name only")
+                return [brand_name.lower()], ""
             
             industry_description = f"{title}. {meta_desc_text}" if title or meta_desc_text else ""
             text_content = f"{title} {meta_desc_text}"
@@ -801,7 +868,7 @@ async def _search_initial_candidates(
     # Búsqueda Inicial (Concurrente)
     search_tasks = [search_google_api(q, num=10) for q in queries]
     search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
-
+    
     for items in search_results:
         if items is None or isinstance(items, Exception):
             continue
@@ -810,7 +877,7 @@ async def _search_initial_candidates(
             full_text = f"{item.get('title', '')} {item.get('snippet', '')}"
             extracted = extract_competitor_names(full_text, context.name)
             discovered_names.update(extracted)
-
+            
             link = clean_url(item.get("link", ""))
             if link not in seen:
                 seen.add(link)
@@ -822,6 +889,8 @@ async def _search_initial_candidates(
                     source="search",
                 )
                 raw_candidates.append(candidate)
+    
+    return raw_candidates, discovered_names
 
     return raw_candidates, discovered_names
 
@@ -875,7 +944,7 @@ def _classify_all_candidates(
             continue
 
         res = classify_competitor(cand, context)
-
+        
         if res.valid:
             netloc = urlparse(cand.clean_url).netloc
             # Additional safety check: ensure netloc is not empty
@@ -891,8 +960,13 @@ def _classify_all_candidates(
             else:
                 lda_competitors.append(competitor)
         else:
-            discarded = DiscardedCandidate(url=cand.clean_url, reason=res.reason or "Unknown reason")
+            discarded = DiscardedCandidate(
+                url=cand.clean_url,
+                reason=res.reason or "Unknown reason"
+            )
             discarded_candidates.append(discarded)
+    
+    return hda_competitors, lda_competitors, discarded_candidates
 
     return hda_competitors, lda_competitors, discarded_candidates
 
