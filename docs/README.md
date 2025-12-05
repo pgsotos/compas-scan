@@ -118,6 +118,11 @@ Central index of all technical documentation for the project.
 - Docker containerization
 - Redis caching layer
 
+📋 [**ARCHITECT_PROMPTS_ROADMAP.md**](./ARCHITECT_PROMPTS_ROADMAP.md) - Future roadmap (not mandatory)
+- Advanced prompts from software architect
+- Code review, testing, security, architecture guidelines
+- Recommendations for future improvements
+
 ---
 
 ## 🗺️ Navigation Tips

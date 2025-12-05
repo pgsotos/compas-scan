@@ -112,6 +112,11 @@
 - Containerización con Docker
 - Capa de caché Redis
 
+📋 [**ARCHITECT_PROMPTS_ROADMAP.md**](./ARCHITECT_PROMPTS_ROADMAP.md) - Roadmap futuro (no mandatorio)
+- Prompts avanzados de arquitecto de software
+- Guías de code review, testing, seguridad, arquitectura
+- Recomendaciones para mejoras futuras
+
 ---
 
 ## 🗺️ Tips de Navegación
