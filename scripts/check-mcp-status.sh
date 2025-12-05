@@ -91,6 +91,40 @@ else
     echo "❌ Memory MCP: Not configured"
 fi
 
+# Vercel MCP
+if grep -q "\"vercel\"" "$MCP_CONFIG_FILE" 2>/dev/null; then
+    echo "✅ Vercel MCP: Configured"
+    # Check for token in env (local package) or headers (remote HTTP)
+    if grep -q "VERCEL_TOKEN" "$MCP_CONFIG_FILE" 2>/dev/null || grep -q "Authorization.*Bearer" "$MCP_CONFIG_FILE" 2>/dev/null; then
+        # Try to extract token from Authorization header
+        TOKEN=$(grep -o "Bearer [^\"]*" "$MCP_CONFIG_FILE" | sed 's/Bearer //' | head -1)
+        if [ -z "$TOKEN" ]; then
+            # Try to extract from env
+            TOKEN=$(grep -o "VERCEL_TOKEN.*\"[^\"]*\"" "$MCP_CONFIG_FILE" | grep -o '"[^"]*"$' | tr -d '"' | head -1)
+        fi
+        if [ -n "$TOKEN" ]; then
+            echo "   ✅ Token: ${TOKEN:0:10}... (configured)"
+        else
+            echo "   ⚠️  Token format not recognized"
+        fi
+    else
+        echo "   ⚠️  Token not configured"
+    fi
+    # Check if using remote HTTP server
+    if grep -q "\"url\".*mcp.vercel.com" "$MCP_CONFIG_FILE" 2>/dev/null; then
+        echo "   ✅ Using remote HTTP server: https://mcp.vercel.com"
+    fi
+else
+    echo "❌ Vercel MCP: Not configured"
+fi
+
+# React Bits MCP
+if grep -q "\"react-bits\"" "$MCP_CONFIG_FILE" 2>/dev/null; then
+    echo "✅ React Bits MCP: Configured"
+else
+    echo "❌ React Bits MCP: Not configured"
+fi
+
 echo ""
 echo "📝 Notes:"
 echo "  - MCPs activate after restarting the IDE"
@@ -98,11 +132,13 @@ echo "  - If MCP resources are not available, restart the IDE"
 echo ""
 echo "🔧 Setup scripts:"
 echo "  - Context7: ./scripts/setup-context7.sh"
+echo "  - Vercel:  ./scripts/setup-vercel-mcp.sh"
 echo "  - GitHub:  ./scripts/setup-github-mcp.sh"
 echo "  - Memory:  ./scripts/setup-memory-mcp.sh"
 echo ""
 echo "🔗 Useful resources:"
 echo "  - Context7 Console: https://console.upstash.com/context7"
+echo "  - Vercel MCP: https://vercel.com/docs/mcp/vercel-mcp"
 echo "  - GitHub MCP: https://github.com/github/github-mcp-server"
 echo "  - Documentation: docs/MCP_RECOMMENDATIONS.md"
 echo ""

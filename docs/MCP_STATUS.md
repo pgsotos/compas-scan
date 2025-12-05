@@ -44,6 +44,36 @@ MCPs are IDE tools for AI assistants, not runtime services.
 
 ## 🔍 Other MCPs Available (Not Configured)
 
+### Vercel MCP ⭐ Highly Recommended
+
+**Purpose:** Deployment management, log analysis, project configuration  
+**Official URL:** `https://mcp.vercel.com`  
+**Status:** ⚠️ **Available but not configured**  
+**Setup:** `./scripts/setup-vercel-mcp.sh`  
+**Documentation:** https://vercel.com/docs/mcp/vercel-mcp
+
+**Features:**
+- Search Vercel documentation
+- List projects and deployments
+- Analyze deployment logs
+- Manage domains and configurations
+- Troubleshoot deployment issues
+
+**When to use:**
+- Monitor deployments across dev/staging/production
+- Analyze deployment logs when issues occur
+- Query project configuration and domains
+- Get AI assistance for Vercel-specific issues
+
+**Setup Requirements:**
+- Vercel token (get from https://vercel.com/account/tokens)
+- Required scopes: `read`, `deployments:read`, `projects:read`
+- Bun or Node.js (for local package) OR use remote HTTP server
+
+**Status:** ⭐⭐⭐ **Highly Recommended** - Perfect for CompasScan's Vercel deployment workflow
+
+---
+
 ### shadcn MCP Server
 - **Purpose:** Browse, search, and install shadcn/ui components
 - **Use Case:** React Bits integration
@@ -63,6 +93,7 @@ MCPs are IDE tools for AI assistants, not runtime services.
 | MCP Server | Type | Status | Location | Purpose |
 |------------|------|--------|----------|---------|
 | **Context7** | Real MCP | ✅ Active | `~/.cursor/mcp.json` | Library documentation |
+| **Vercel** | Real MCP | ⚠️ Available | Not configured | Deployment management |
 | **Brave Search** | Runtime client | ✅ Working | `api/search_clients.py` | Web search (HTTP API) |
 | **PostgreSQL** | Runtime client | ✅ Working | `api/db.py` | Database (Supabase) |
 | **URL Validation** | Runtime client | ✅ Working | `api/compas_core.py` | HTTP validation (httpx) |
@@ -72,15 +103,21 @@ MCPs are IDE tools for AI assistants, not runtime services.
 
 ## 🎯 Recommendations
 
-### Current Setup: ✅ Optimal
+### Current Setup: ✅ Good (Can be improved)
 
 **For Development:**
 - ✅ Context7 MCP: Essential for up-to-date documentation
 - ✅ Runtime clients: Handle production operations (HTTP APIs)
 
+**Recommended to Add:**
+- ⭐⭐⭐ **Vercel MCP**: Highly recommended for deployment management
+  - Monitor deployments across 3 environments
+  - Analyze deployment logs
+  - Query project configuration
+  - Setup: `./scripts/setup-vercel-mcp.sh`
+
 **Not Needed:**
 - ❌ shadcn MCP: Only if extensively using shadcn/ui components
-- ❌ Other MCPs: Current setup covers all needs
 
 ### Official MCP Servers Available
 
@@ -113,7 +150,7 @@ https://github.com/modelcontextprotocol/servers
    - **Use Case:** Context retention across sessions
    - **Status:** ⚠️ Could be useful, but not critical
 
-**Current recommendation:** ✅ Keep current setup. It's optimal for CompasScan's needs.
+**Current recommendation:** ⭐ Consider adding Vercel MCP for deployment management.
 
 ---
 
@@ -128,6 +165,9 @@ cat ~/.cursor/mcp.json | python3 -m json.tool
 
 # Test Context7 (in Cursor chat)
 # Ask: "Show me React hooks documentation" use context7
+
+# Test Vercel MCP (after setup, in Cursor chat)
+# Ask: "List my Vercel deployments" or "Show deployment logs for compas-scan"
 ```
 
 ---
@@ -142,5 +182,5 @@ cat ~/.cursor/mcp.json | python3 -m json.tool
 ---
 
 **Last Updated:** 2024-12-04  
-**Status:** ✅ Current setup is optimal
+**Status:** ✅ Current setup is good. Vercel MCP recommended for deployment management.
 

@@ -7,8 +7,9 @@ Quick setup guide for all Model Context Protocol (MCP) servers used in CompasSca
 ## 📋 Available MCPs
 
 1. **Context7 MCP** - Library documentation (✅ Already configured)
-2. **GitHub MCP** - Repository operations and PR management
-3. **Memory MCP** - Context retention across sessions
+2. **Vercel MCP** - Deployment management and logs (⭐ Highly recommended)
+3. **GitHub MCP** - Repository operations and PR management
+4. **Memory MCP** - Context retention across sessions
 
 ---
 
@@ -22,13 +23,16 @@ Run the setup scripts in order:
 # 1. Context7 MCP (if not already configured)
 ./scripts/setup-context7.sh
 
-# 2. GitHub MCP
+# 2. Vercel MCP (highly recommended for deployment management)
+./scripts/setup-vercel-mcp.sh
+
+# 3. GitHub MCP
 ./scripts/setup-github-mcp.sh
 
-# 3. Memory MCP
+# 4. Memory MCP
 ./scripts/setup-memory-mcp.sh
 
-# 4. Verify all MCPs
+# 5. Verify all MCPs
 ./scripts/check-mcp-status.sh
 ```
 
@@ -47,6 +51,16 @@ Edit `~/.cursor/mcp.json` directly:
         "--api-key",
         "ctx7sk-your-key"
       ]
+    },
+    "vercel": {
+      "command": "bunx",
+      "args": [
+        "-y",
+        "@vercel/mcp-server"
+      ],
+      "env": {
+        "VERCEL_TOKEN": "your_vercel_token_here"
+      }
     },
     "github": {
       "command": "docker",
@@ -90,7 +104,70 @@ Edit `~/.cursor/mcp.json` directly:
 
 ---
 
-### 2. GitHub MCP
+### 2. Vercel MCP ⭐
+
+**Purpose:** Deployment management, log analysis, project configuration
+
+**Setup:**
+```bash
+./scripts/setup-vercel-mcp.sh
+```
+
+**Requirements:**
+- Bun or Node.js (bunx/npx)
+- Vercel token (required)
+- Get token at: https://vercel.com/account/tokens
+- Required scopes: `read`, `deployments:read`, `projects:read`
+
+**Features:**
+- Search Vercel documentation
+- List projects and deployments
+- Analyze deployment logs
+- Manage domains and configurations
+- Troubleshoot deployment issues
+
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "vercel": {
+      "command": "bunx",
+      "args": [
+        "-y",
+        "@vercel/mcp-server"
+      ],
+      "env": {
+        "VERCEL_TOKEN": "your_vercel_token"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Remote HTTP Server**
+If using Vercel's remote MCP server:
+```json
+{
+  "mcpServers": {
+    "vercel": {
+      "url": "https://mcp.vercel.com",
+      "transport": "http"
+    }
+  }
+}
+```
+
+**Use Cases for CompasScan:**
+- Monitor deployments across dev/staging/production
+- Analyze deployment logs when issues occur
+- Query project configuration and domains
+- Get AI assistance for Vercel-specific issues
+
+**Documentation:** https://vercel.com/docs/mcp/vercel-mcp
+
+---
+
+### 3. GitHub MCP
 
 **Purpose:** Repository operations, PR creation, repository queries
 
@@ -128,7 +205,7 @@ Edit `~/.cursor/mcp.json` directly:
 
 ---
 
-### 3. Memory MCP
+### 4. Memory MCP
 
 **Purpose:** Context retention across sessions
 
@@ -197,6 +274,17 @@ This will show:
 2. ✅ Check token has `repo` scope
 3. ✅ Verify binary/Docker is accessible
 4. ✅ Try read-only mode first
+
+### Vercel MCP Issues
+
+**Problem:** Vercel MCP not connecting.
+
+**Solutions:**
+1. ✅ Verify token format (should be a valid Vercel token)
+2. ✅ Check token has required scopes (`read`, `deployments:read`, `projects:read`)
+3. ✅ Verify package manager is available (`bunx` or `npx`)
+4. ✅ For remote server: Check network connectivity to `https://mcp.vercel.com`
+5. ✅ Restart Cursor after configuration
 
 ### Memory MCP Issues
 

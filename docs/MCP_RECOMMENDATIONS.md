@@ -190,7 +190,72 @@ CompasScan is a competitive intelligence tool that:
 
 ---
 
-### 5. **Sentry MCP** ⭐ Recommended (If Available)
+### 5. **Vercel MCP** ⭐⭐⭐ Highly Recommended
+
+**Official URL:** `https://mcp.vercel.com`  
+**Status:** ✅ **AVAILABLE** (Official Vercel MCP Server)  
+**Documentation:** https://vercel.com/docs/mcp/vercel-mcp
+
+**Key Features:**
+- ✅ **Documentation Search** - Quickly locate and navigate Vercel's documentation
+- ✅ **Project Management** - List projects, create deployments, manage domains
+- ✅ **Deployment Log Analysis** - Access and analyze deployment logs to troubleshoot issues
+- ✅ **OAuth Authentication** - Secure access to Vercel projects
+
+**Use Cases:**
+- **Deployment Management**: List deployments, check status, analyze logs
+- **Project Configuration**: Query project settings, domains, environment variables
+- **Troubleshooting**: Analyze deployment failures and logs
+- **Documentation**: Search Vercel docs during development
+
+**Benefits for CompasScan:**
+- Monitor deployments across 3 environments (dev, staging, production)
+- Analyze deployment logs when issues occur
+- Query project configuration and domains
+- Get AI assistance for Vercel-specific issues
+- Automate deployment verification workflows
+
+**Setup:**
+```json
+{
+  "mcpServers": {
+    "vercel": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@vercel/mcp-server"
+      ],
+      "env": {
+        "VERCEL_TOKEN": "your_vercel_token"
+      }
+    }
+  }
+}
+```
+
+**Alternative: HTTP Transport (Remote)**
+If using a remote MCP server:
+```json
+{
+  "mcpServers": {
+    "vercel": {
+      "url": "https://mcp.vercel.com",
+      "transport": "http"
+    }
+  }
+}
+```
+
+**Authentication:**
+1. Get Vercel token from: https://vercel.com/account/tokens
+2. Required scopes: `read`, `deployments:read`, `projects:read`
+3. For full access: `write` scope (optional)
+
+**Status:** ⭐⭐⭐ **Highly Recommended** - Perfect for CompasScan's Vercel deployment workflow
+
+---
+
+### 6. **Sentry MCP** ⭐ Recommended (If Available)
 
 **Status:** ⚠️ **Check availability** - Sentry may have MCP support
 
@@ -230,6 +295,7 @@ CompasScan is a competitive intelligence tool that:
 
 | MCP | Priority | Use Case | Status |
 |-----|----------|----------|--------|
+| **Vercel MCP** | ⭐⭐⭐ High | Deployment management, logs | ✅ Available (official) |
 | **GitHub MCP** | ⭐⭐⭐ High | CI/CD automation, Gitflow | ✅ Available (official) |
 | **Memory MCP** | ⭐⭐ Medium | Context retention | ⚠️ Consider |
 | **Sentry MCP** | ⭐⭐ Medium | Error analysis | ⚠️ Research |
@@ -241,7 +307,14 @@ CompasScan is a competitive intelligence tool that:
 ## 🚀 Implementation Plan
 
 ### Phase 1: High Priority
-1. **GitHub MCP** - Automate Gitflow workflow
+1. **Vercel MCP** - Deployment management and monitoring
+   - **URL:** https://mcp.vercel.com
+   - **Setup:** HTTP transport or npm package
+   - **Use:** Deployment logs, project management, troubleshooting
+   - **Benefit:** Official Vercel MCP, perfect for CompasScan's deployment workflow
+   - **Token:** Get from https://vercel.com/account/tokens
+
+2. **GitHub MCP** - Automate Gitflow workflow
    - **Repository:** https://github.com/github/github-mcp-server
    - **Setup:** Binary or Docker (see setup options above)
    - **Use:** PR creation, repository queries, CI/CD automation
@@ -249,13 +322,13 @@ CompasScan is a competitive intelligence tool that:
    - **Note:** Can use read-only mode for safety
 
 ### Phase 2: Medium Priority
-2. **Memory MCP** - Improve AI context
+3. **Memory MCP** - Improve AI context
    - Setup: `~/.cursor/mcp.json`
    - Use: Context retention across sessions
    - Benefit: Better AI assistance over time
 
 ### Phase 3: Research
-3. **Sentry MCP** - Error analysis
+4. **Sentry MCP** - Error analysis
    - Research: Check Sentry MCP availability
    - Use: Error analysis and debugging
    - Benefit: AI-assisted error resolution
