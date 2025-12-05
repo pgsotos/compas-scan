@@ -271,12 +271,30 @@ async def get_brand_context(user_input: str) -> BrandContext:
     """
     # Check cache first
     cached = await cache.get_brand_context(user_input)
+    context_from_cache = None
     if cached:
         try:
-            return BrandContext(**cached)
+            context_from_cache = BrandContext(**cached)
         except (ValueError, TypeError) as e:
             print(f"⚠️ Error deserializing context cache: {e}")
     
+    # If we have cached context, check if it needs enrichment
+    if context_from_cache:
+        needs_enrichment = _needs_industry_enrichment(
+            context_from_cache.keywords, 
+            context_from_cache.industry_description or ""
+        )
+        
+        if needs_enrichment:
+            print(f"🔄 Cached context needs enrichment. Invalidating cache and regenerating...")
+            # Invalidate cache to force regeneration with enrichment
+            await cache.invalidate_brand(user_input)
+            context_from_cache = None  # Force regeneration
+        else:
+            # Cache is good, return it
+            return context_from_cache
+    
+    # No cache or cache invalidated - generate fresh context
     print(f"🧠 Analizando contexto para: '{user_input}'...")
     
     # 1. Detect URL or brand name
@@ -288,27 +306,7 @@ async def get_brand_context(user_input: str) -> BrandContext:
     keywords, industry_description = await _extract_keywords_from_website(url, brand_name)
     
     # 2.5. Enrich industry_description if keywords indicate industry but description doesn't mention it
-    if keywords and industry_description:
-        keywords_lower = [kw.lower() for kw in keywords]
-        desc_lower = industry_description.lower()
-        
-        # Industry-specific keyword patterns
-        industry_patterns = {
-            ("outdoor", "clothing", "apparel", "gear", "equipment"): "outdoor clothing and apparel",
-            ("payment", "gateway", "fintech", "processing"): "payment processing and financial services",
-            ("software", "saas", "platform", "application"): "software and technology",
-            ("restaurant", "food", "dining", "cuisine"): "food service and dining",
-            ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
-        }
-        
-        # Check if keywords match an industry pattern but description doesn't mention it
-        for pattern_keywords, industry_name in industry_patterns.items():
-            if any(kw in keywords_lower for kw in pattern_keywords):
-                if industry_name not in desc_lower and not any(kw in desc_lower for kw in pattern_keywords):
-                    # Enrich description with explicit industry mention
-                    industry_description = f"{brand_name} - {industry_name} company. {industry_description}"
-                    print(f"✅ Enriched industry_description with explicit industry: {industry_name}")
-                    break
+    industry_description = _enrich_industry_description(brand_name, keywords, industry_description)
     
     # 3. Detect geo-location from TLD
     detected_country, detected_tld = _detect_geo_from_tld(url)
@@ -325,10 +323,71 @@ async def get_brand_context(user_input: str) -> BrandContext:
         industry_description=industry_description if industry_description else None,
     )
     
-    # Save to cache
+    # Save to cache (with enrichment applied)
     await cache.set_brand_context(user_input, context.model_dump())
     
     return context
+
+
+def _needs_industry_enrichment(keywords: list[str], industry_description: str) -> bool:
+    """
+    Check if industry_description needs enrichment based on keywords.
+    
+    Returns True if keywords indicate an industry but description doesn't mention it.
+    """
+    if not keywords or not industry_description:
+        return False
+    
+    keywords_lower = [kw.lower() for kw in keywords]
+    desc_lower = industry_description.lower()
+    
+    industry_patterns = {
+        ("outdoor", "clothing", "apparel", "gear", "equipment"): "outdoor clothing and apparel",
+        ("payment", "gateway", "fintech", "processing"): "payment processing and financial services",
+        ("software", "saas", "platform", "application"): "software and technology",
+        ("restaurant", "food", "dining", "cuisine"): "food service and dining",
+        ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
+    }
+    
+    for pattern_keywords, industry_name in industry_patterns.items():
+        if any(kw in keywords_lower for kw in pattern_keywords):
+            if industry_name not in desc_lower and not any(kw in desc_lower for kw in pattern_keywords):
+                return True
+    
+    return False
+
+
+def _enrich_industry_description(brand_name: str, keywords: list[str], industry_description: str | None) -> str | None:
+    """
+    Enrich industry_description if keywords indicate industry but description doesn't mention it.
+    
+    Returns enriched description or original if no enrichment needed.
+    """
+    if not keywords or not industry_description:
+        return industry_description
+    
+    keywords_lower = [kw.lower() for kw in keywords]
+    desc_lower = industry_description.lower()
+    
+    # Industry-specific keyword patterns
+    industry_patterns = {
+        ("outdoor", "clothing", "apparel", "gear", "equipment"): "outdoor clothing and apparel",
+        ("payment", "gateway", "fintech", "processing"): "payment processing and financial services",
+        ("software", "saas", "platform", "application"): "software and technology",
+        ("restaurant", "food", "dining", "cuisine"): "food service and dining",
+        ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
+    }
+    
+    # Check if keywords match an industry pattern but description doesn't mention it
+    for pattern_keywords, industry_name in industry_patterns.items():
+        if any(kw in keywords_lower for kw in pattern_keywords):
+            if industry_name not in desc_lower and not any(kw in desc_lower for kw in pattern_keywords):
+                # Enrich description with explicit industry mention
+                enriched = f"{brand_name} - {industry_name} company. {industry_description}"
+                print(f"✅ Enriched industry_description with explicit industry: {industry_name}")
+                return enriched
+    
+    return industry_description
 
 
 def _normalize_brave_results(brave_results: list[dict]) -> list[dict]:
