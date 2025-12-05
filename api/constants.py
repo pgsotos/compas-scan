@@ -89,6 +89,13 @@ STOP_WORDS = {
     "business",
     "businesses",
     "player",
+    # Loading/redirect page indicators
+    "routing",
+    "redirecting",
+    "loading",
+    "please wait",
+    "hang",
+    "tight",
 }
 
 # Lista auxiliar de Gigantes Digitales (Agnóstica a la industria)

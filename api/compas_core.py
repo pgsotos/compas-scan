@@ -102,6 +102,40 @@ async def _find_official_site_url(brand_name: str) -> str:
     return f"https://www.{brand_slug}.com"
 
 
+def _is_loading_page(title: str, meta_desc: str) -> bool:
+    """
+    Detect if the page is a loading/redirect page instead of actual content.
+    
+    Args:
+        title: Page title
+        meta_desc: Meta description
+        
+    Returns:
+        True if page appears to be a loading/redirect page
+    """
+    if not title:
+        return False
+    
+    title_lower = title.lower()
+    loading_indicators = [
+        "hang tight",
+        "routing",
+        "redirecting",
+        "loading",
+        "please wait",
+        "checkout",
+        "processing",
+        "please hold",
+    ]
+    
+    # Check if title contains loading indicators
+    for indicator in loading_indicators:
+        if indicator in title_lower:
+            return True
+    
+    return False
+
+
 async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[list[str], str]:
     """
     Extract keywords and industry description from website HTML.
@@ -126,6 +160,39 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
             title = soup.title.string if soup.title else ""
             meta_desc_tag = soup.find("meta", attrs={"name": "description"})
             meta_desc_text = meta_desc_tag.get("content", "") if meta_desc_tag else ""
+            
+            # Detect loading/redirect pages
+            if _is_loading_page(title, meta_desc_text):
+                print(f"⚠️ Detected loading/redirect page for {brand_name}. Using fallback strategy.")
+                # Try to get better context from web search as fallback
+                try:
+                    search_query = f"{brand_name} company industry business"
+                    search_results = await search_google_api(search_query, num=3)
+                    if search_results:
+                        # Extract keywords from search snippets
+                        snippets = " ".join([r.get("snippet", "") for r in search_results[:3]])
+                        fallback_keywords = extract_keywords_from_text(
+                            f"{brand_name} {snippets}", top_n=5
+                        )
+                        # Filter out brand name and generic terms
+                        brand_lower = brand_name.lower()
+                        filtered = [
+                            kw
+                            for kw in fallback_keywords
+                            if kw != brand_lower
+                            and brand_lower not in kw
+                            and kw not in STOP_WORDS
+                            and kw not in FAMOUS_DOMAINS
+                        ][:5]
+                        if filtered:
+                            print(f"✅ Fallback keywords from search: {', '.join(filtered)}")
+                            return filtered, f"{brand_name} - Information from web search"
+                except Exception as e:
+                    print(f"⚠️ Fallback search failed: {e}")
+                
+                # Ultimate fallback: use brand name only to avoid confusion
+                print(f"⚠️ Using minimal fallback: brand name only")
+                return [brand_name.lower()], ""
             
             industry_description = f"{title}. {meta_desc_text}" if title or meta_desc_text else ""
             text_content = f"{title} {meta_desc_text}"
