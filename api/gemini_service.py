@@ -75,6 +75,9 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
 
     CRITICAL: The brand operates in the industry described above. Focus ONLY on competitors in this EXACT same industry.
     Do NOT confuse the brand with unrelated industries based on domain name or keywords alone.
+    
+    IMPORTANT: If the industry description mentions specific products, services, or business activities, use that as the PRIMARY indicator of the industry.
+    Ignore generic keywords that could apply to multiple industries. The industry_description field is the most reliable source of truth.
 
     STEP 2 - IDENTIFY COMPETITORS:
     Find direct and indirect competitors that operate in the SAME industry/niche as {brand_context.name}.
