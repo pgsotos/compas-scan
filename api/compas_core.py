@@ -166,15 +166,19 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
                 print(f"⚠️ Detected loading/redirect page for {brand_name}. Using fallback strategy.")
                 # Try to get better context from web search as fallback
                 try:
-                    search_query = f"{brand_name} company industry business"
-                    search_results = await search_google_api(search_query, num=3)
+                    # More specific search query to get industry context
+                    search_query = f"{brand_name} what does {brand_name} sell products services"
+                    search_results = await search_google_api(search_query, num=5)
                     if search_results:
-                        # Extract keywords from search snippets
-                        snippets = " ".join([r.get("snippet", "") for r in search_results[:3]])
+                        # Extract keywords from search snippets and titles
+                        all_text = " ".join([
+                            r.get("title", "") + " " + r.get("snippet", "")
+                            for r in search_results[:5]
+                        ])
                         fallback_keywords = extract_keywords_from_text(
-                            f"{brand_name} {snippets}", top_n=5
+                            f"{brand_name} {all_text}", top_n=10
                         )
-                        # Filter out brand name and generic terms
+                        # Filter out brand name and generic terms, prioritize industry-specific terms
                         brand_lower = brand_name.lower()
                         filtered = [
                             kw
@@ -183,10 +187,13 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
                             and brand_lower not in kw
                             and kw not in STOP_WORDS
                             and kw not in FAMOUS_DOMAINS
+                            and len(kw) > 3  # Filter very short words
                         ][:5]
                         if filtered:
                             print(f"✅ Fallback keywords from search: {', '.join(filtered)}")
-                            return filtered, f"{brand_name} - Information from web search"
+                            # Use first snippet as industry description
+                            industry_desc = search_results[0].get("snippet", "")[:200]
+                            return filtered, f"{brand_name} - {industry_desc}"
                 except Exception as e:
                     print(f"⚠️ Fallback search failed: {e}")
                 
