@@ -166,8 +166,8 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
                 print(f"⚠️ Detected loading/redirect page for {brand_name}. Using fallback strategy.")
                 # Try to get better context from web search as fallback
                 try:
-                    # More specific search query to get industry context
-                    search_query = f"{brand_name} what does {brand_name} sell products services"
+                    # More specific search query to get industry context - explicitly ask about products
+                    search_query = f"{brand_name} what products does {brand_name} sell what industry"
                     search_results = await search_google_api(search_query, num=5)
                     if search_results:
                         # Extract keywords from search snippets and titles
@@ -191,8 +191,16 @@ async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[lis
                         ][:5]
                         if filtered:
                             print(f"✅ Fallback keywords from search: {', '.join(filtered)}")
-                            # Use first snippet as industry description
-                            industry_desc = search_results[0].get("snippet", "")[:200]
+                            # Build explicit industry description from first 2-3 results
+                            # Prioritize snippets that mention products/industry explicitly
+                            industry_parts = []
+                            for result in search_results[:3]:
+                                snippet = result.get("snippet", "")
+                                title = result.get("title", "")
+                                # Look for product/industry mentions
+                                if any(word in snippet.lower() for word in ["sell", "product", "industry", "company", "brand"]):
+                                    industry_parts.append(snippet[:150])
+                            industry_desc = " ".join(industry_parts[:2])[:300] if industry_parts else search_results[0].get("snippet", "")[:200]
                             return filtered, f"{brand_name} - {industry_desc}"
                 except Exception as e:
                     print(f"⚠️ Fallback search failed: {e}")
