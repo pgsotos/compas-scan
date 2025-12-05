@@ -311,9 +311,14 @@ async def get_brand_context(user_input: str) -> BrandContext:
     
     # If enrichment was applied, invalidate Gemini cache to force fresh query with new context
     if industry_description != original_desc:
+        # Invalidate both by URL and by name to ensure cache is cleared
+        # Gemini cache uses: url or brand_name (same logic)
         cache_key = url or brand_name
-        await cache.invalidate_brand(cache_key)  # This invalidates all cache entries for the brand
-        print(f"🔄 Invalidated Gemini cache due to industry enrichment")
+        await cache.invalidate_brand(cache_key)
+        # Also invalidate by brand_name in case URL was used
+        if url and url != brand_name:
+            await cache.invalidate_brand(brand_name)
+        print(f"🔄 Invalidated Gemini cache due to industry enrichment (key: {cache_key})")
     
     # 3. Detect geo-location from TLD
     detected_country, detected_tld = _detect_geo_from_tld(url)
