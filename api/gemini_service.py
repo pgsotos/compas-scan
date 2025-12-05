@@ -73,14 +73,22 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
     {geo_context}
     Business Context:{industry_context}{keywords_context}
 
-    CRITICAL: The brand operates in the industry described above. Focus ONLY on competitors in this EXACT same industry.
-    Do NOT confuse the brand with unrelated industries based on domain name or keywords alone.
+    CRITICAL INDUSTRY IDENTIFICATION RULES:
+    1. The industry_description field is the PRIMARY and MOST RELIABLE source of truth about what industry this brand operates in.
+    2. If industry_description mentions specific products, services, or business activities, those define the industry.
+    3. Keywords are SECONDARY - only use them if industry_description is unclear or missing.
+    4. IGNORE generic keywords that could apply to multiple industries (e.g., "service", "platform", "online", "business").
+    5. Look for INDUSTRY-SPECIFIC terms in the description:
+       - "outdoor", "clothing", "apparel", "gear", "equipment" → Outdoor/Apparel industry
+       - "payment", "gateway", "processing", "fintech" → Payment/Financial industry
+       - "software", "SaaS", "platform", "application" → Software/Tech industry
+       - "restaurant", "food", "dining" → Food Service industry
+       - etc.
     
-    IMPORTANT: If the industry description mentions specific products, services, or business activities, use that as the PRIMARY indicator of the industry.
-    Ignore generic keywords that could apply to multiple industries. The industry_description field is the most reliable source of truth.
-
     STEP 2 - IDENTIFY COMPETITORS:
     Find direct and indirect competitors that operate in the SAME industry/niche as {brand_context.name}.
+    
+    CRITICAL: Competitors MUST be in the EXACT same industry. If the brand sells outdoor clothing, competitors must also sell outdoor clothing (NOT payment services, NOT software, NOT unrelated products).
 
     Business Rules:
     1. HDA (High Domain Authority): Massive competitors, industry leaders, or highly recognized brands IN THE SAME INDUSTRY.
@@ -88,7 +96,11 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
     3. EXCLUDE: Aggregators (Capterra, G2), news sites (CNET, Forbes), forums (Reddit), and subdomains of the brand itself.
     4. VALIDATION: Only include real competitors with active websites that sell/offer similar products/services.
     5. GEOGRAPHIC PRIORITY: If a country is specified, prioritize LOCAL competitors from that market that operate in the same industry.
-    6. INDUSTRY MATCH: Competitors MUST be in the same industry (e.g., if the brand sells hair care products, competitors must also sell hair care products, NOT hardware or unrelated items).
+    6. INDUSTRY MATCH (MOST IMPORTANT): Competitors MUST be in the EXACT same industry:
+       - If industry_description mentions "outdoor clothing" or "apparel" → competitors must sell outdoor clothing/apparel (e.g., The North Face, REI, Arc'teryx)
+       - If industry_description mentions "payment" or "fintech" → competitors must be payment/financial companies (e.g., Stripe, PayPal)
+       - If industry_description mentions "software" or "SaaS" → competitors must be software companies
+       - DO NOT mix industries. If the brand is in outdoor apparel, DO NOT return payment companies, software companies, or any unrelated industries.
 
     JSON Output Format (Array of objects):
     [
