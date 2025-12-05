@@ -351,7 +351,9 @@ def _needs_industry_enrichment(keywords: list[str], industry_description: str) -
     
     for pattern_keywords, industry_name in industry_patterns.items():
         if any(kw in keywords_lower for kw in pattern_keywords):
-            if industry_name not in desc_lower and not any(kw in desc_lower for kw in pattern_keywords):
+            # Only return True if the explicit industry phrase is missing
+            # This ensures we enrich even if individual keywords are present
+            if industry_name not in desc_lower:
                 return True
     
     return False
@@ -378,10 +380,13 @@ def _enrich_industry_description(brand_name: str, keywords: list[str], industry_
         ("hair", "care", "shampoo", "styling"): "hair care and beauty products",
     }
     
-    # Check if keywords match an industry pattern but description doesn't mention it
+    # Check if keywords match an industry pattern but description doesn't explicitly mention the industry
+    # We enrich if the explicit industry phrase is missing, even if individual keywords are present
     for pattern_keywords, industry_name in industry_patterns.items():
         if any(kw in keywords_lower for kw in pattern_keywords):
-            if industry_name not in desc_lower and not any(kw in desc_lower for kw in pattern_keywords):
+            # Only enrich if the explicit industry phrase is NOT in the description
+            # This ensures Gemini gets clear industry context even if keywords are scattered
+            if industry_name not in desc_lower:
                 # Enrich description with explicit industry mention
                 enriched = f"{brand_name} - {industry_name} company. {industry_description}"
                 print(f"✅ Enriched industry_description with explicit industry: {industry_name}")
