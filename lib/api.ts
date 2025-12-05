@@ -21,6 +21,16 @@ export interface ScanReport {
   Discarded_Candidates: DiscardedCandidate[];
 }
 
+export interface BrandContext {
+  name: string;
+  url: string;
+  keywords: string[];
+  country?: string;
+  tld?: string;
+  industry_description?: string;
+  search_queries?: string[];
+}
+
 export interface ScanResponse {
   status: string;
   target?: string;
@@ -28,6 +38,7 @@ export interface ScanResponse {
   message: string;
   warnings?: string[];
   debug?: string;
+  brand_context?: BrandContext;
 }
 
 export interface HealthCheckResponse {

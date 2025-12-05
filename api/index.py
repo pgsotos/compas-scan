@@ -12,10 +12,20 @@ from .cache import cache
 from .compas_core import run_compas_scan
 from .db import save_scan_results
 from .models import HealthCheckResponse, ScanResponse
-from .observability import setup_observability
+from .observability import (
+    add_breadcrumb,
+    capture_exception,
+    init_sentry,
+    setup_observability,
+    track_scan_event,
+)
 
 # Detectar entorno para seguridad
 IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
+
+# --- Initialize Sentry BEFORE creating FastAPI app ---
+# This is required for proper FastAPI integration auto-detection
+init_sentry()
 
 # Inicializar FastAPI App
 # redirect_slashes=False to handle /api/ and /api the same way
@@ -127,19 +137,49 @@ async def scan_competitors(
     warnings: list[str] = []
 
     try:
+        # Add breadcrumb for scan start
+        add_breadcrumb(f"Starting competitor scan for: {brand}", category="scan", level="info")
+
         # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
-        scan_report = await run_compas_scan(brand)
+        scan_report, brand_context = await run_compas_scan(brand)
+
+        # Calculate metrics
+        total_competitors = len(scan_report.HDA_Competitors) + len(scan_report.LDA_Competitors)
+
+        # Add breadcrumb for scan completion
+        add_breadcrumb(
+            f"Scan completed: {total_competitors} competitors found",
+            category="scan",
+            level="info",
+            data={
+                "hda_count": len(scan_report.HDA_Competitors),
+                "lda_count": len(scan_report.LDA_Competitors),
+                "discarded": len(scan_report.Discarded_Candidates),
+            },
+        )
 
         # 2. Persistencia Opcional (No crítica)
         if os.environ.get("SUPABASE_URL"):
             try:
                 save_scan_results(brand, scan_report.model_dump())
+                add_breadcrumb("Results saved to database", category="database", level="info")
             except Exception as db_error:
                 warning_msg = f"Database persistence failed (non-critical): {str(db_error)}"
                 print(f"⚠️ {warning_msg}")
                 warnings.append("Could not save to database (continuing with scan)")
+                add_breadcrumb(
+                    "Database save failed", category="database", level="warning", data={"error": str(db_error)}
+                )
         else:
             print("ℹ️ Supabase not configured. Skipping persistence.")
+
+        # Track successful scan in Sentry
+        track_scan_event(
+            brand=brand,
+            competitors_found=total_competitors,
+            strategy="ai_first",  # Could be dynamic based on actual strategy used
+            success=True,
+        )
 
         # 3. Respuesta Exitosa
         return ScanResponse(
@@ -148,11 +188,19 @@ async def scan_competitors(
             data=scan_report,
             message="Scan completed successfully.",
             warnings=warnings if warnings else None,
+            brand_context=brand_context,
         )
 
     except Exception as e:
         # Critical error in business logic
         print(f"❌ Critical Error in Scan: {e}")
+
+        # Capture exception with context
+        capture_exception(e, brand=brand, endpoint="scan_competitors", error_type=type(e).__name__)
+
+        # Track failed scan
+        track_scan_event(brand=brand, competitors_found=0, strategy="unknown", success=False)
+
         raise HTTPException(status_code=500, detail="Error processing competitor scan.")
 
 
@@ -168,8 +216,39 @@ async def health_check():
     )
 
 
+@api_router.get("/sentry-debug", summary="Sentry Debug - Trigger Test Error")
+async def trigger_sentry_error():
+    """
+    Endpoint de verificación de Sentry.
+
+    Genera un error intencional para probar que:
+    - El error se captura correctamente en Sentry
+    - Se crea una transacción en Performance
+    - El error se asocia a la transacción
+
+    ⚠️ Solo para testing. Eliminar en producción.
+    """
+    _ = 1 / 0  # noqa: F841 - Intentional error for Sentry testing
+    return {"status": "This should never be reached"}
+
+
 # Include API router with /api prefix
 app.include_router(api_router)
+
+
+# Sentry debug endpoint - Testing direct on app
+@app.get("/test-error")
+async def test_error():
+    """Simple test endpoint."""
+    raise ValueError("Test error for Sentry!")
+
+
+# Sentry debug endpoint según docs de Sentry
+@app.get("/sentry-debug")
+async def trigger_error():
+    """Sentry verification endpoint - as per docs."""
+    _ = 1 / 0  # noqa: F841 - Intentional error for Sentry testing
+
 
 # Also include routes without prefix for local development
 @app.get("/", response_model=ScanResponse, include_in_schema=False)
@@ -177,26 +256,30 @@ async def scan_competitors_root(
     brand: str = Query(..., min_length=2),
 ):
     """Root endpoint for local development (redirects to /api/)."""
-    from .compas_core import run_compas_scan
     import os
-    
+
+    from .compas_core import run_compas_scan
+
     warnings: list[str] = []
-    scan_report = await run_compas_scan(brand)
-    
+    scan_report, brand_context = await run_compas_scan(brand)
+
     if os.environ.get("SUPABASE_URL"):
         try:
             from .db import save_scan_results
+
             save_scan_results(brand, scan_report.model_dump())
         except Exception:
             warnings.append("Could not save to database (continuing with scan)")
-    
+
     return ScanResponse(
         status="success",
         target=brand,
         data=scan_report,
         message="Scan completed successfully.",
         warnings=warnings if warnings else None,
+        brand_context=brand_context,
     )
+
 
 @app.get("/health", response_model=HealthCheckResponse, include_in_schema=False)
 async def health_check_root():
@@ -208,6 +291,7 @@ async def health_check_root():
         environment=os.environ.get("VERCEL_ENV", "local"),
         observability=observability_status,
     )
+
 
 # --- Vercel Handler (ASGI Export) ---
 # Vercel detecta automáticamente la variable 'app' como ASGI application

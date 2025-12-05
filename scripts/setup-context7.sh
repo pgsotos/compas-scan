@@ -1,18 +1,23 @@
 #!/bin/bash
-# Script para configurar Context7 MCP en Cursor
+# Script para configurar Context7 MCP en el IDE
 
 set -e
 
-CURSOR_MCP_DIR="$HOME/.cursor"
-MCP_CONFIG_FILE="$CURSOR_MCP_DIR/mcp.json"
+# Source IDE detection utility
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/detect-ide.sh"
 
-echo "🔧 Configurando Context7 MCP para Cursor..."
+# Get MCP config paths
+MCP_CONFIG_DIR=$(get_mcp_config_dir)
+MCP_CONFIG_FILE=$(get_mcp_config_path)
+
+echo "🔧 Configurando Context7 MCP para el IDE..."
 echo ""
 
 # Crear directorio si no existe
-if [ ! -d "$CURSOR_MCP_DIR" ]; then
-    echo "📁 Creando directorio $CURSOR_MCP_DIR..."
-    mkdir -p "$CURSOR_MCP_DIR"
+if [ ! -d "$MCP_CONFIG_DIR" ]; then
+    echo "📁 Creando directorio $MCP_CONFIG_DIR..."
+    mkdir -p "$MCP_CONFIG_DIR"
 fi
 
 # Verificar si ya existe configuración
@@ -124,7 +129,7 @@ cat "$MCP_CONFIG_FILE"
 echo ""
 echo ""
 echo "🔄 Próximos pasos:"
-echo "1. Reinicia Cursor completamente"
+echo "1. Reinicia el IDE completamente"
 echo "2. Verifica que Context7 aparece en los recursos MCP"
 echo "3. Usa 'use context7' en tus prompts para acceder a documentación actualizada"
 echo ""

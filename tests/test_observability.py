@@ -48,9 +48,9 @@ def print_warning(msg: str):
 
 
 def print_header(msg: str):
-    print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*60}{Colors.RESET}")
+    print(f"\n{Colors.BOLD}{Colors.BLUE}{'=' * 60}{Colors.RESET}")
     print(f"{Colors.BOLD}{Colors.BLUE}{msg}{Colors.RESET}")
-    print(f"{Colors.BOLD}{Colors.BLUE}{'='*60}{Colors.RESET}\n")
+    print(f"{Colors.BOLD}{Colors.BLUE}{'=' * 60}{Colors.RESET}\n")
 
 
 # URLs por ambiente
@@ -99,9 +99,9 @@ async def test_successful_scans(base_url: str, brands: list[str], count: int = 3
     """Test 2: Scans Exitosos - Genera traces completos en Logfire"""
     print_header(f"Testing {count} Successful Scans (Logfire Traces)")
     results = []
-    
+
     selected_brands = brands[:count]
-    
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         for i, brand in enumerate(selected_brands, 1):
             print_info(f"[{i}/{count}] Scanning: {brand}")
@@ -109,7 +109,7 @@ async def test_successful_scans(base_url: str, brands: list[str], count: int = 3
                 start_time = time.time()
                 response = await client.get(f"{base_url}/", params={"brand": brand})
                 elapsed = time.time() - start_time
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     print_success(f"   ✅ Scan OK ({elapsed:.2f}s)")
@@ -122,18 +122,18 @@ async def test_successful_scans(base_url: str, brands: list[str], count: int = 3
                 else:
                     print_warning(f"   ⚠️  Status {response.status_code}")
                     results.append({"brand": brand, "status": "error", "code": response.status_code})
-                    
+
             except httpx.TimeoutException:
-                print_error(f"   ❌ Timeout (>60s)")
+                print_error("   ❌ Timeout (>60s)")
                 results.append({"brand": brand, "status": "timeout"})
             except Exception as e:
                 print_error(f"   ❌ Error: {e}")
                 results.append({"brand": brand, "status": "error", "error": str(e)})
-            
+
             # Pequeña pausa entre requests
             if i < count:
                 await asyncio.sleep(2)
-    
+
     return results
 
 
@@ -141,7 +141,7 @@ async def test_error_scenarios(base_url: str) -> list[dict[str, Any]]:
     """Test 3: Errores Controlados - Genera eventos en Sentry"""
     print_header("Testing Error Scenarios (Sentry Events)")
     results = []
-    
+
     error_tests = [
         {
             "name": "Missing brand parameter",
@@ -159,7 +159,7 @@ async def test_error_scenarios(base_url: str) -> list[dict[str, Any]]:
             "expected_status": 404,
         },
     ]
-    
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         for test in error_tests:
             print_info(f"Testing: {test['name']}")
@@ -174,9 +174,9 @@ async def test_error_scenarios(base_url: str) -> list[dict[str, Any]]:
             except Exception as e:
                 print_error(f"   ❌ Exception: {e}")
                 results.append({"test": test["name"], "status": "error", "error": str(e)})
-            
+
             await asyncio.sleep(1)
-    
+
     return results
 
 
@@ -200,7 +200,7 @@ async def test_docs_endpoint(base_url: str) -> dict[str, Any]:
 async def test_concurrent_requests(base_url: str, count: int = 5) -> list[dict[str, Any]]:
     """Test 5: Requests Concurrentes - Genera múltiples traces simultáneos"""
     print_header(f"Testing {count} Concurrent Requests (Stress Test)")
-    
+
     async def single_request(brand: str) -> dict[str, Any]:
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
@@ -215,15 +215,15 @@ async def test_concurrent_requests(base_url: str, count: int = 5) -> list[dict[s
                 }
         except Exception as e:
             return {"brand": brand, "status": "error", "error": str(e)}
-    
+
     # Ejecutar requests concurrentes
     brands = TEST_BRANDS[:count]
     tasks = [single_request(brand) for brand in brands]
     results = await asyncio.gather(*tasks)
-    
+
     success_count = sum(1 for r in results if r.get("status") == "success")
     print_success(f"Completed: {success_count}/{count} successful")
-    
+
     return results
 
 
@@ -236,7 +236,7 @@ def print_summary(
 ):
     """Imprime resumen de todos los tests"""
     print_header("📊 Test Summary")
-    
+
     total_tests = 1 + len(scan_results) + len(error_results) + 1 + len(concurrent_results)
     successful = (
         (1 if health_result.get("status") == "success" else 0)
@@ -245,19 +245,19 @@ def print_summary(
         + (1 if docs_result.get("status") == "success" else 0)
         + sum(1 for r in concurrent_results if r.get("status") == "success")
     )
-    
+
     print(f"{Colors.BOLD}Total Tests:{Colors.RESET} {total_tests}")
     print(f"{Colors.BOLD}Successful:{Colors.RESET} {Colors.GREEN}{successful}{Colors.RESET}")
     print(f"{Colors.BOLD}Failed:{Colors.RESET} {Colors.RED}{total_tests - successful}{Colors.RESET}")
-    
+
     print(f"\n{Colors.BOLD}📈 Expected Observability Data:{Colors.RESET}")
     print(f"  • Logfire: {len(scan_results) + len(concurrent_results) + 2} traces (health + scans + docs)")
     print(f"  • Sentry: {len(error_results)} error events (controlled errors)")
-    print(f"  • Metrics: Request counts, response times, error rates")
-    
+    print("  • Metrics: Request counts, response times, error rates")
+
     print(f"\n{Colors.CYAN}🔍 Check your dashboards:{Colors.RESET}")
-    print(f"  • Logfire: https://logfire.pydantic.dev")
-    print(f"  • Sentry: https://sentry.io")
+    print("  • Logfire: https://logfire.pydantic.dev")
+    print("  • Sentry: https://sentry.io")
 
 
 async def main():
@@ -285,32 +285,32 @@ async def main():
         action="store_true",
         help="Skip error scenario tests",
     )
-    
+
     args = parser.parse_args()
-    
+
     base_url = ENVIRONMENTS[args.env]
-    
+
     print_header(f"🧪 Observability Testing - {args.env.upper()}")
     print_info(f"Target: {base_url}")
     print_info(f"Scans: {args.count}")
     print_info(f"Concurrent: {args.concurrent}\n")
-    
+
     # Ejecutar tests
     health_result = await test_health_check(base_url)
-    
+
     scan_results = await test_successful_scans(base_url, TEST_BRANDS, args.count)
-    
+
     error_results = []
     if not args.skip_errors:
         error_results = await test_error_scenarios(base_url)
-    
+
     docs_result = await test_docs_endpoint(base_url)
-    
+
     concurrent_results = await test_concurrent_requests(base_url, args.concurrent)
-    
+
     # Resumen
     print_summary(health_result, scan_results, error_results, docs_result, concurrent_results)
-    
+
     print(f"\n{Colors.GREEN}{Colors.BOLD}✅ Testing Complete!{Colors.RESET}")
     print(f"{Colors.CYAN}Check your observability dashboards in 1-2 minutes for new data.{Colors.RESET}\n")
 
@@ -321,4 +321,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}⚠️  Interrupted by user{Colors.RESET}")
         sys.exit(1)
-

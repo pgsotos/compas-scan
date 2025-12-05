@@ -77,7 +77,7 @@ export default function Home() {
 
           {/* Results */}
           {searchResult?.data && !isLoading && (
-            <div className="space-y-4 sm:space-y-6 animate-fade-in">
+            <div className="space-y-4 sm:space-y-6">
               {/* Summary and Export */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <div className="flex-1">
@@ -89,18 +89,13 @@ export default function Home() {
               </div>
 
               {searchResult.message && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-blue-800">{searchResult.message}</p>
-                  {searchResult.target && (
-                    <p className="text-blue-600 text-sm mt-1">
-                      Target: <strong>{searchResult.target}</strong>
-                    </p>
-                  )}
                 </div>
               )}
 
               {searchResult.warnings && searchResult.warnings.length > 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 animate-fade-in">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <p className="text-yellow-800 font-semibold mb-2">Warnings:</p>
                   <ul className="list-disc list-inside text-yellow-700 text-sm">
                     {searchResult.warnings.map((warning, index) => (
@@ -121,7 +116,7 @@ export default function Home() {
 
           {/* Empty State (Initial) */}
           {!searchResult && !isLoading && !error && (
-            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 lg:p-12 text-center animate-fade-in">
+            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 lg:p-12 text-center">
               <div className="max-w-md mx-auto">
                 <svg
                   className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-400 mb-4"

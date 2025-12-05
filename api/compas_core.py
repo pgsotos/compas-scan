@@ -21,20 +21,38 @@ from .constants import (
     TLD_TO_COUNTRY,
 )
 from .gemini_service import get_competitors_from_gemini
-from .search_clients import brave_search
 from .mocks import clean_url
 from .models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
+from .search_clients import brave_search
 
 
 def get_root_domain(url: str) -> str:
-    """Extrae el dominio raíz (ej. us.puma.com -> puma.com)."""
+    """
+    Extract root domain from URL (e.g., us.puma.com -> puma.com).
+    
+    Args:
+        url: URL or domain string
+        
+    Returns:
+        Root domain string, or original input if parsing fails
+    """
+    if not url:
+        return url
+    
     try:
-        parsed = urlparse(url if url.startswith("http") else f"https://{url}")
+        # Ensure URL has protocol for parsing
+        url_with_protocol = url if url.startswith("http") else f"https://{url}"
+        parsed = urlparse(url_with_protocol)
+        
+        if not parsed.netloc:
+            return url
+        
         parts = parsed.netloc.split(".")
         if len(parts) > 2:
             return ".".join(parts[-2:])
         return parsed.netloc
-    except:
+    except (ValueError, AttributeError) as e:
+        print(f"⚠️ Error parsing domain from '{url}': {e}")
         return url
 
 
@@ -46,92 +64,263 @@ def extract_keywords_from_text(text: str, top_n: int = 5) -> list[str]:
     return [w for w, c in Counter(meaningful).most_common(top_n)]
 
 
+def _detect_url_from_input(user_input: str) -> tuple[str, str]:
+    """
+    Detect URL or brand name from user input.
+    
+    Args:
+        user_input: User-provided brand name or URL
+        
+    Returns:
+        Tuple of (url, brand_name)
+    """
+    if "." in user_input and " " not in user_input:
+        url = clean_url(user_input)
+        name = urlparse(url).netloc.replace("www.", "").split(".")[0].capitalize()
+        return url, name
+    
+    # Search for official site
+    return "", user_input
+
+
+async def _find_official_site_url(brand_name: str) -> str:
+    """
+    Find official site URL for a brand name.
+    
+    Args:
+        brand_name: Brand name to search for
+        
+    Returns:
+        Official site URL or fallback URL
+    """
+    search_result = await search_google_api(f"{brand_name} official site", num=1)
+    if search_result and search_result[0].get("link"):
+        return clean_url(search_result[0]["link"])
+    
+    # Fallback: construct URL from brand name
+    brand_slug = brand_name.lower().replace(" ", "")
+    return f"https://www.{brand_slug}.com"
+
+
+async def _extract_keywords_from_website(url: str, brand_name: str) -> tuple[list[str], str]:
+    """
+    Extract keywords and industry description from website HTML.
+    
+    Args:
+        url: Website URL to analyze
+        brand_name: Brand name for filtering keywords
+        
+    Returns:
+        Tuple of (keywords list, industry_description)
+    """
+    if not url:
+        return ["service", "platform", "app", "online"], ""
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=HEADERS, timeout=4)
+            if response.status_code != 200:
+                return ["service", "platform", "app", "online"], ""
+            
+            soup = BeautifulSoup(response.text, "html.parser")
+            title = soup.title.string if soup.title else ""
+            meta_desc_tag = soup.find("meta", attrs={"name": "description"})
+            meta_desc_text = meta_desc_tag.get("content", "") if meta_desc_tag else ""
+            
+            industry_description = f"{title}. {meta_desc_text}" if title or meta_desc_text else ""
+            text_content = f"{title} {meta_desc_text}"
+            raw_keywords = extract_keywords_from_text(text_content, top_n=10)
+            brand_lower = brand_name.lower()
+            
+            # Filter out brand name and famous domains from keywords
+            filtered_keywords = [
+                kw
+                for kw in raw_keywords
+                if kw != brand_lower and brand_lower not in kw and kw not in FAMOUS_DOMAINS
+            ][:5]
+            
+            print(f"📋 Contexto extraído: {title[:50]}...")
+            print(f"🔑 Keywords: {', '.join(filtered_keywords)}")
+            
+            return filtered_keywords, industry_description
+    except (httpx.HTTPError, httpx.TimeoutException, AttributeError) as e:
+        print(f"⚠️ Error extracting keywords from website: {e}")
+        return ["service", "platform", "app", "online"], ""
+
+
+def _detect_geo_from_tld(url: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Detect country and TLD from URL.
+    
+    Args:
+        url: URL to analyze
+        
+    Returns:
+        Tuple of (country_name, tld)
+    """
+    if not url:
+        return None, None
+    
+    try:
+        parsed = urlparse(url)
+        if not parsed.netloc:
+            return None, None
+        
+        tld = parsed.netloc.split(".")[-1].lower()
+        if tld in TLD_TO_COUNTRY:
+            country = TLD_TO_COUNTRY[tld]
+            print(f"🌍 Geo-Awareness Activado: {country} (TLD: .{tld})")
+            return country, tld
+    except (AttributeError, IndexError) as e:
+        print(f"⚠️ Error detecting TLD: {e}")
+    
+    return None, None
+
+
 async def get_brand_context(user_input: str) -> BrandContext:
-    """Obtiene contexto semántico del sitio de la marca con cache (TTL: 6h)."""
+    """
+    Get semantic context from brand website with caching (TTL: 6h).
+    
+    Args:
+        user_input: Brand name or URL to analyze
+        
+    Returns:
+        BrandContext with name, URL, keywords, country, and industry description
+    """
     # Check cache first
     cached = await cache.get_brand_context(user_input)
     if cached:
         try:
             return BrandContext(**cached)
-        except Exception as e:
-            print(f"⚠️  Error deserializing context cache: {e}")
-
-    name = user_input
-    url = ""
-    keywords: list[str] = []
-
+        except (ValueError, TypeError) as e:
+            print(f"⚠️ Error deserializing context cache: {e}")
+    
     print(f"🧠 Analizando contexto para: '{user_input}'...")
-
-    # 1. Detectar URL o Nombre
-    if "." in user_input and " " not in user_input:
-        url = clean_url(user_input)
-        name = urlparse(url).netloc.replace("www.", "").split(".")[0].capitalize()
-    else:
-        # Búsqueda rápida del sitio oficial
-        res = await search_google_api(f"{user_input} official site", num=1)
-        url = clean_url(res[0]["link"]) if res else f"https://www.{user_input.lower().replace(' ', '')}.com"
-
-    # 2. Extraer Keywords y descripción de la industria
-    industry_description = ""
-    try:
-        if url:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(url, headers=HEADERS, timeout=4)
-                if resp.status_code == 200:
-                    soup = BeautifulSoup(resp.text, "html.parser")
-                    # Extraer título y meta description para análisis
-                    title = soup.title.string if soup.title else ""
-                    meta_desc = soup.find('meta', attrs={'name': 'description'})
-                    meta_desc_text = meta_desc.get('content', '') if meta_desc else ""
-                    
-                    # Guardar descripción completa para contexto
-                    industry_description = f"{title}. {meta_desc_text}"
-                    
-                    text = f"{title} {meta_desc_text}"
-                    raw_kws = extract_keywords_from_text(text, top_n=10)
-                    brand_clean = name.lower()
-
-                    # Filtrar la propia marca y dominios famosos (evitar que 'disney' sea keyword)
-                    keywords = [
-                        kw for kw in raw_kws if kw != brand_clean and brand_clean not in kw and kw not in FAMOUS_DOMAINS
-                    ][:5]
-                    
-                    print(f"📋 Contexto extraído: {title[:50]}...")
-                    print(f"🔑 Keywords: {', '.join(keywords)}")
-    except Exception as e:
-        print(f"⚠️ Error en contexto: {e}")
-        keywords = ["service", "platform", "app", "online"]
-
-    # 🌍 GEO-AWARENESS AGRESIVO: Detectar país basado en TLD
-    detected_country = None
-    detected_tld = None
-    if url:
-        try:
-            parsed = urlparse(url)
-            # Extraer TLD (último componente del dominio)
-            tld = parsed.netloc.split(".")[-1].lower()
-            if tld in TLD_TO_COUNTRY:
-                detected_country = TLD_TO_COUNTRY[tld]
-                detected_tld = tld
-                # 🎯 ACCIÓN CRÍTICA: Insertar el país al INICIO de las keywords para priorización máxima
-                keywords.insert(0, detected_country.lower())
-                print(f"🌍 Geo-Awareness Activado: {detected_country} (TLD: .{tld})")
-        except Exception as e:
-            print(f"⚠️ Error detectando TLD: {e}")
-
+    
+    # 1. Detect URL or brand name
+    url, brand_name = _detect_url_from_input(user_input)
+    if not url:
+        url = await _find_official_site_url(brand_name)
+    
+    # 2. Extract keywords and industry description
+    keywords, industry_description = await _extract_keywords_from_website(url, brand_name)
+    
+    # 3. Detect geo-location from TLD
+    detected_country, detected_tld = _detect_geo_from_tld(url)
+    if detected_country:
+        # Insert country at the beginning of keywords for maximum prioritization
+        keywords.insert(0, detected_country.lower())
+    
     context = BrandContext(
-        name=name,
+        name=brand_name,
         url=url,
         keywords=keywords,
         country=detected_country,
         tld=detected_tld,
-        industry_description=industry_description if industry_description else None
+        industry_description=industry_description if industry_description else None,
     )
-
+    
     # Save to cache
     await cache.set_brand_context(user_input, context.model_dump())
-
+    
     return context
+
+
+def _normalize_brave_results(brave_results: list[dict]) -> list[dict]:
+    """
+    Normalize Brave Search results to match Google Search format.
+    
+    Args:
+        brave_results: Raw results from Brave Search API
+        
+    Returns:
+        Normalized results in Google format
+    """
+    normalized = []
+    for item in brave_results:
+        normalized.append(
+            {
+                "title": item.get("title", ""),
+                "link": item.get("url", ""),
+                "url": item.get("url", ""),  # Add both for compatibility
+                "snippet": item.get("snippet", ""),
+            }
+        )
+    return normalized
+
+
+async def _search_with_brave(query: str, num: int) -> Optional[list[dict]]:
+    """
+    Search using Brave Search API.
+    
+    Args:
+        query: Search query
+        num: Number of results to return
+        
+    Returns:
+        Normalized search results or None if failed
+    """
+    if not brave_search.enabled:
+        return None
+    
+    try:
+        print(f"🔍 Searching with Brave: {query}")
+        raw_results = await brave_search.search(query, count=num)
+        if not raw_results:
+            return None
+        
+        normalized_results = _normalize_brave_results(raw_results)
+        await cache.set_google_search(query, normalized_results)
+        print(f"   ✅ Brave Search: {len(normalized_results)} results")
+        return normalized_results
+    except (httpx.HTTPError, httpx.TimeoutException, KeyError) as e:
+        print(f"⚠️  Brave Search failed: {e}")
+        return None
+
+
+async def _search_with_google(query: str, num: int) -> Optional[list[dict]]:
+    """
+    Search using Google Custom Search API.
+    
+    Args:
+        query: Search query
+        num: Number of results to return
+        
+    Returns:
+        Search results or None if failed
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    cse_id = os.environ.get("GOOGLE_CSE_ID")
+    
+    if not api_key or not cse_id:
+        print("⚠️  Google Search not configured (missing API_KEY or CSE_ID)")
+        return None
+    
+    try:
+        print(f"🔍 Fallback to Google Search: {query}")
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://www.googleapis.com/customsearch/v1",
+                params={"key": api_key, "cx": cse_id, "q": query, "num": num},
+                timeout=10.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if "error" in data:
+                error_message = data["error"].get("message", "Unknown error")
+                print(f"⚠️ Google API Error: {error_message}")
+                return None
+            
+            results = data.get("items", [])
+            if results:
+                await cache.set_google_search(query, results)
+                print(f"   ✅ Google Search: {len(results)} results")
+            
+            return results
+    except (httpx.HTTPError, httpx.TimeoutException, KeyError, ValueError) as e:
+        print(f"⚠️  Google Search failed: {e}")
+        return None
 
 
 async def search_web(query: str, num: int = 5) -> Optional[list[dict]]:
@@ -139,75 +328,37 @@ async def search_web(query: str, num: int = 5) -> Optional[list[dict]]:
     Smart web search with automatic fallback.
 
     Strategy:
-    1. Try Brave Search (free, no limits)
-    2. Fallback to Google Custom Search if Brave fails
-    3. Use cache for both (TTL: 1h)
+    1. Check cache first
+    2. Try Brave Search (free, no limits)
+    3. Fallback to Google Custom Search if Brave fails
+    4. Use cache for both (TTL: 1h)
 
-    Returns standard format:
-    [{"title": str, "url": str, "link": str, "snippet": str}, ...]
+    Args:
+        query: Search query string
+        num: Number of results to return (default: 5)
+        
+    Returns:
+        List of search results in standard format:
+        [{"title": str, "url": str, "link": str, "snippet": str}, ...]
+        Returns None if all search methods fail
     """
     # Check cache first
-    cached = await cache.get_google_search(query)
-    if cached:
-        return cached
-
+    cached_results = await cache.get_google_search(query)
+    if cached_results:
+        return cached_results
+    
     # Try Brave Search first (free, no limits)
-    if brave_search.enabled:
-        try:
-            print(f"🔍 Searching with Brave: {query}")
-            results = await brave_search.search(query, count=num)
-            if results:
-                # Normalize Brave format to match Google format
-                normalized = []
-                for item in results:
-                    normalized.append(
-                        {
-                            "title": item.get("title", ""),
-                            "link": item.get("url", ""),
-                            "url": item.get("url", ""),  # Add both for compatibility
-                            "snippet": item.get("snippet", ""),
-                        }
-                    )
-
-                # Save to cache
-                await cache.set_google_search(query, normalized)
-                print(f"   ✅ Brave Search: {len(normalized)} results")
-                return normalized
-        except Exception as e:
-            print(f"⚠️  Brave Search failed: {e}")
-
+    brave_results = await _search_with_brave(query, num)
+    if brave_results:
+        return brave_results
+    
     # Fallback to Google Custom Search
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    cse_id = os.environ.get("GOOGLE_CSE_ID")
-
-    if not api_key or not cse_id:
-        print("⚠️  No search API available (Brave failed, Google not configured)")
-        return None
-
-    try:
-        print(f"🔍 Fallback to Google Search: {query}")
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                "https://www.googleapis.com/customsearch/v1",
-                params={"key": api_key, "cx": cse_id, "q": query, "num": num},
-            )
-            data = resp.json()
-
-            if "error" in data:
-                print(f"⚠️ Google API Error: {data['error']['message']}")
-                return None
-
-            results = data.get("items", [])
-
-            # Save to cache
-            if results:
-                await cache.set_google_search(query, results)
-                print(f"   ✅ Google Search: {len(results)} results")
-
-            return results
-    except Exception as e:
-        print(f"⚠️  Google Search failed: {e}")
-        return None
+    google_results = await _search_with_google(query, num)
+    if google_results:
+        return google_results
+    
+    print("⚠️  No search API available (Brave failed, Google failed or not configured)")
+    return None
 
 
 # Keep old function for backwards compatibility
@@ -260,25 +411,220 @@ async def search_direct_competitor(name: str) -> Optional[CompetitorCandidate]:
     return None
 
 
-def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandContext) -> ClassificationResult:
+def _should_discard_candidate(url: str, domain: str) -> Optional[str]:
     """
-    Clasifica un candidato en HDA, LDA o Ruido basándose en señales.
+    Check if candidate should be discarded based on domain/URL patterns.
+    
+    Args:
+        url: Candidate URL
+        domain: Candidate domain (lowercase)
+        
+    Returns:
+        Discard reason if should be discarded, None otherwise
     """
-    url = candidate.clean_url
-    domain = urlparse(url).netloc.lower()
-    snippet = f"{candidate.title or ''} {candidate.snippet or ''}".lower()
-
-    # --- FASE 1: DESCARTE RÁPIDO ---
-    if any(ig in domain for ig in IGNORED_DOMAINS):
-        return ClassificationResult(valid=False, reason="Dominio ignorado")
-    if any(s in url for s in IGNORED_SUBDOMAINS):
-        return ClassificationResult(valid=False, reason="Subdominio app/store")
-    if any(t in url for t in IGNORED_TERMS):
-        return ClassificationResult(valid=False, reason="Sitio de soporte")
-
+    if any(ignored in domain for ignored in IGNORED_DOMAINS):
+        return "Dominio ignorado"
+    
+    if any(subdomain in url for subdomain in IGNORED_SUBDOMAINS):
+        return "Subdominio app/store"
+    
+    if any(term in url for term in IGNORED_TERMS):
+        return "Sitio de soporte"
+    
     domain_base = domain.replace("www.", "").split(".")[0]
     if domain_base in NEWS_TECH_DOMAINS:
-        return ClassificationResult(valid=False, reason="Sitio de noticias")
+        return "Sitio de noticias"
+    
+    return None
+
+
+def _analyze_direct_search_signal(candidate: CompetitorCandidate) -> tuple[bool, list[str]]:
+    """
+    Analyze direct search signal (strongest signal).
+    
+    Args:
+        candidate: Competitor candidate to analyze
+        
+    Returns:
+        Tuple of (is_hda, signals_list)
+    """
+    if candidate.source == "direct_search":
+        return True, ["Descubierto por búsqueda directa"]
+    return False, []
+
+
+def _analyze_famous_domain_signal(domain: str) -> tuple[bool, list[str]]:
+    """
+    Analyze famous domain signal (digital giant).
+    
+    Args:
+        domain: Candidate domain (lowercase)
+        
+    Returns:
+        Tuple of (is_hda, signals_list)
+    """
+    if any(famous in domain for famous in FAMOUS_DOMAINS):
+        return True, ["Gigante Digital"]
+    return False, []
+
+
+def _analyze_industry_terms_signal(
+    snippet: str, url: str, brand_context: BrandContext
+) -> tuple[bool, list[str]]:
+    """
+    Analyze industry terms and domain quality signal.
+    
+    Args:
+        snippet: Candidate title and snippet combined
+        url: Candidate URL
+        brand_context: Brand context for keyword matching
+        
+    Returns:
+        Tuple of (is_hda, signals_list)
+    """
+    industry_terms = ["streaming", "video", "subscription", "movies", "tv", "watch"]
+    has_industry_terms = any(term in snippet for term in industry_terms)
+    is_clean_domain = len(get_root_domain(url).split(".")) == 2
+    
+    if not (is_clean_domain and has_industry_terms):
+        return False, []
+    
+    signals = ["Dominio oficial con términos de industria"]
+    keyword_matches = [kw for kw in brand_context.keywords if kw in snippet]
+    
+    if len(keyword_matches) >= 2:
+        signals.append(f"Alta relevancia semántica ({len(keyword_matches)} kws)")
+        return True, signals
+    
+    return False, signals
+
+
+def _calculate_geo_score(
+    url: str, snippet: str, brand_context: BrandContext, is_clean_domain: bool
+) -> tuple[int, list[str], bool]:
+    """
+    Calculate geo-location score for local competitor prioritization.
+    
+    Args:
+        url: Candidate URL
+        snippet: Candidate title and snippet combined
+        brand_context: Brand context with country/TLD info
+        is_clean_domain: Whether candidate has a clean domain (2 parts)
+        
+    Returns:
+        Tuple of (geo_score, signals_list, should_promote_to_hda)
+    """
+    if not (brand_context.tld and brand_context.country):
+        return 0, [], False
+    
+    try:
+        candidate_tld = urlparse(url).netloc.split(".")[-1].lower()
+        geo_score = 0
+        signals = []
+        should_promote_to_hda = False
+        
+        # BOOST 1: Same TLD as brand (+25 points)
+        if candidate_tld == brand_context.tld:
+            geo_score += 25
+            signals.append(f"✅ Mismo TLD (.{candidate_tld}) - Competidor LOCAL")
+            # Same TLD + clean domain = automatic HDA
+            if is_clean_domain:
+                should_promote_to_hda = True
+        
+        # BOOST 2: Country mentioned in snippet (+15 points)
+        country_lower = brand_context.country.lower()
+        if country_lower in snippet:
+            geo_score += 15
+            signals.append(f"📍 Mención del país ({brand_context.country})")
+        
+        # BOOST 3: Local keywords in snippet (+10 points)
+        local_keyword_matches = [kw for kw in LOCAL_BOOST_KEYWORDS if kw in snippet]
+        if local_keyword_matches:
+            geo_score += 10
+            signals.append(f"🌍 Keywords locales ({len(local_keyword_matches)})")
+        
+        # High geo-score promotes to HDA
+        if geo_score >= 25:
+            should_promote_to_hda = True
+            signals.append(f"🎯 Geo-Score: {geo_score} → HDA")
+        elif geo_score >= 15:
+            signals.append(f"🎯 Geo-Score: {geo_score} → LDA")
+        
+        return geo_score, signals, should_promote_to_hda
+    except (AttributeError, IndexError) as e:
+        print(f"⚠️ Error calculating geo-score: {e}")
+        return 0, [], False
+
+
+def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandContext) -> ClassificationResult:
+    """
+    Classify candidate as HDA, LDA, or Noise based on signals.
+    
+    Args:
+        candidate: Competitor candidate to classify
+        brand_context: Brand context for comparison
+        
+    Returns:
+        ClassificationResult with type and justification
+    """
+    url = candidate.clean_url
+    if not url:
+        return ClassificationResult(valid=False, reason="Empty or invalid URL")
+    
+    domain = urlparse(url).netloc.lower()
+    if not domain:
+        return ClassificationResult(valid=False, reason="Invalid URL structure (empty domain)")
+    
+    snippet = f"{candidate.title or ''} {candidate.snippet or ''}".lower()
+    
+    # Phase 1: Quick discard check (early returns)
+    discard_reason = _should_discard_candidate(url, domain)
+    if discard_reason:
+        return ClassificationResult(valid=False, reason=discard_reason)
+    
+    # Phase 2: Signal analysis
+    signals: list[str] = []
+    is_hda = False
+    
+    # Signal: Direct search (strongest)
+    is_direct_hda, direct_signals = _analyze_direct_search_signal(candidate)
+    if is_direct_hda:
+        is_hda = True
+        signals.extend(direct_signals)
+    
+    # Signal: Famous domain (digital giant)
+    is_famous_hda, famous_signals = _analyze_famous_domain_signal(domain)
+    if is_famous_hda:
+        is_hda = True
+        signals.extend(famous_signals)
+    
+    # Signal: Industry terms + clean domain
+    is_industry_hda, industry_signals = _analyze_industry_terms_signal(snippet, url, brand_context)
+    if is_industry_hda:
+        is_hda = True
+    signals.extend(industry_signals)
+    
+    # Signal: Geo-location boost
+    is_clean_domain = len(get_root_domain(url).split(".")) == 2
+    geo_score, geo_signals, should_promote_geo_hda = _calculate_geo_score(
+        url, snippet, brand_context, is_clean_domain
+    )
+    signals.extend(geo_signals)
+    if should_promote_geo_hda:
+        is_hda = True
+    
+    # Phase 3: Result
+    if is_hda:
+        return ClassificationResult(
+            valid=True, type="HDA", justification=f"Direct Competitor. {', '.join(signals)}"
+        )
+    
+    if signals:
+        return ClassificationResult(
+            valid=True, type="LDA", justification=f"Niche Competitor. {', '.join(signals)}"
+        )
+    
+    return ClassificationResult(valid=False, reason="Insufficient signals of competition")
 
     # --- FASE 2: ANÁLISIS DE SEÑALES ---
     signals = []
@@ -313,7 +659,7 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
         # Extraer TLD del candidato
         try:
             candidate_tld = urlparse(url).netloc.split(".")[-1].lower()
-            
+
             # BOOST 1: Mismo TLD que la marca original (+25 puntos y señal fuerte)
             if candidate_tld == brand_context.tld:
                 geo_score += 25
@@ -321,19 +667,19 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
                 # Si tiene mismo TLD + dominio limpio, es HDA automáticamente
                 if is_clean_domain:
                     is_hda = True
-            
+
             # BOOST 2: País mencionado en título/snippet (+15 puntos)
             country_lower = brand_context.country.lower()
             if country_lower in snippet:
                 geo_score += 15
                 signals.append(f"📍 Mención del país ({brand_context.country})")
-            
+
             # BOOST 3: Keywords locales en snippet (+10 puntos)
             local_kw_matches = [kw for kw in LOCAL_BOOST_KEYWORDS if kw in snippet]
             if local_kw_matches:
                 geo_score += 10
                 signals.append(f"🌍 Keywords locales ({len(local_kw_matches)})")
-            
+
             # Si el geo-score es alto, promover a HDA o al menos a LDA
             if geo_score >= 25:
                 is_hda = True
@@ -355,17 +701,21 @@ def classify_competitor(candidate: CompetitorCandidate, brand_context: BrandCont
 def _generate_search_queries(context: BrandContext) -> list[str]:
     """
     Genera queries dinámicas de búsqueda basadas en el contexto de la marca.
-    
+
     Si hay país detectado, prioriza queries geolocalizadas.
-    Si no, usa queries genéricas.
+    Si no, usa queries genéricas con keywords relevantes.
     """
     # 🌍 GEO-TARGETING: Si hay país detectado, priorizar queries geolocalizadas
     if context.country:
         print(f"🎯 Activando búsqueda geolocalizada para: {context.country}")
+        # Extraer keywords útiles (omitir el país)
+        useful_kws = [kw for kw in context.keywords if kw.lower() != context.country.lower()][:2]
+        kw_string = " ".join(useful_kws) if useful_kws else "servicios"
+
         # Queries con prioridad geográfica (aparecen PRIMERO)
         geo_queries = [
             f"competidores de {context.name} en {context.country}",
-            f"{context.keywords[1] if len(context.keywords) > 1 else 'marcas'} {context.keywords[2] if len(context.keywords) > 2 else ''} {context.country}",
+            f"{kw_string} {context.country}",
             f"sitios como {context.name} {context.country}",
             f"{context.name} alternativas {context.country}",
         ]
@@ -375,31 +725,51 @@ def _generate_search_queries(context: BrandContext) -> list[str]:
             f"{context.name} competitors",
         ]
         return geo_queries + general_queries
-    
+
     # Queries tradicionales si no hay país detectado
-    return [
+    base_queries = [
         f"related:{get_root_domain(context.url)}",
         f"similar brands to {context.name}",
         f"{context.name} competitors",
-        f"{' '.join(context.keywords[:2])} services like {context.name}",
     ]
+
+    # Si hay keywords del sitio, úsalos para una query específica
+    if context.keywords and len(context.keywords) >= 2:
+        # Filtrar keywords comunes/stopwords
+        relevant_kws = [kw for kw in context.keywords[:3] if kw.lower() not in {"the", "and", "or", "of", "to", "in"}]
+        if relevant_kws:
+            kw_query = f"{' '.join(relevant_kws[:2])} like {context.name}"
+            base_queries.append(kw_query)
+    elif context.industry_description:
+        # Intentar extraer términos relevantes del description
+        desc_words = context.industry_description.lower().split()
+        # Filtrar stopwords y tomar palabras relevantes
+        relevant_words = [
+            w for w in desc_words if len(w) > 4 and w not in {"about", "where", "their", "would", "could", "should"}
+        ][:2]
+        if relevant_words:
+            desc_query = f"{' '.join(relevant_words)} like {context.name}"
+            base_queries.append(desc_query)
+
+    # Si no tenemos información específica, solo usamos queries genéricas
+    return base_queries
 
 
 async def _try_ai_strategy(context: BrandContext) -> Optional[ScanReport]:
     """
     Estrategia AI-First: Consulta a Gemini para obtener competidores.
-    
+
     Returns:
         ScanReport si Gemini devuelve resultados, None si falla o no está disponible.
     """
     ai_candidates = await get_competitors_from_gemini(context)
     if not ai_candidates:
         return None
-    
+
     print("✨ Usando resultados de Gemini.")
     hda_competitors: list[Competitor] = []
     lda_competitors: list[Competitor] = []
-    
+
     for cand in ai_candidates:
         c_type = cand.gemini_type or "LDA"
         competitor = Competitor(
@@ -411,25 +781,23 @@ async def _try_ai_strategy(context: BrandContext) -> Optional[ScanReport]:
             hda_competitors.append(competitor)
         else:
             lda_competitors.append(competitor)
-    
-    return ScanReport(
-        HDA_Competitors=hda_competitors,
-        LDA_Competitors=lda_competitors,
-        Discarded_Candidates=[]
-    )
+
+    return ScanReport(HDA_Competitors=hda_competitors, LDA_Competitors=lda_competitors, Discarded_Candidates=[])
 
 
-async def _search_initial_candidates(queries: list[str], context: BrandContext) -> tuple[list[CompetitorCandidate], set[str]]:
+async def _search_initial_candidates(
+    queries: list[str], context: BrandContext
+) -> tuple[list[CompetitorCandidate], set[str]]:
     """
     Realiza búsqueda inicial concurrente con las queries proporcionadas.
-    
+
     Returns:
         Tupla de (candidatos encontrados, nombres descubiertos para búsqueda directa)
     """
     raw_candidates: list[CompetitorCandidate] = []
     seen: set[str] = set()
     discovered_names: set[str] = set()
-    
+
     # Búsqueda Inicial (Concurrente)
     search_tasks = [search_google_api(q, num=10) for q in queries]
     search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
@@ -457,59 +825,69 @@ async def _search_initial_candidates(queries: list[str], context: BrandContext) 
     
     return raw_candidates, discovered_names
 
+    return raw_candidates, discovered_names
+
 
 async def _search_discovered_competitors(discovered_names: set[str], seen: set[str]) -> list[CompetitorCandidate]:
     """
     Busca directamente los sitios oficiales de competidores descubiertos.
-    
+
     Args:
         discovered_names: Nombres de competidores extraídos de snippets
         seen: Set de URLs ya procesadas para evitar duplicados
-    
+
     Returns:
         Lista de candidatos encontrados directamente
     """
     additional_candidates: list[CompetitorCandidate] = []
-    
+
     if not discovered_names:
         return additional_candidates
-    
+
     print(f"🔍 Investigando nombres descubiertos: {list(discovered_names)[:5]}...")
     direct_tasks = [search_direct_competitor(name) for name in list(discovered_names)[:5]]
     direct_results = await asyncio.gather(*direct_tasks, return_exceptions=True)
-    
+
     for direct in direct_results:
         if direct and not isinstance(direct, Exception) and direct.clean_url not in seen:
             seen.add(direct.clean_url)
             additional_candidates.append(direct)
-    
+
     return additional_candidates
 
 
 def _classify_all_candidates(
-    candidates: list[CompetitorCandidate],
-    context: BrandContext
+    candidates: list[CompetitorCandidate], context: BrandContext
 ) -> tuple[list[Competitor], list[Competitor], list[DiscardedCandidate]]:
     """
     Clasifica todos los candidatos en HDA, LDA o descartados.
-    
+
     Returns:
         Tupla de (HDA competitors, LDA competitors, discarded candidates)
     """
     hda_competitors: list[Competitor] = []
     lda_competitors: list[Competitor] = []
     discarded_candidates: list[DiscardedCandidate] = []
-    
+
     for cand in candidates:
+        # Skip candidates with empty URLs to prevent validation errors
+        if not cand.clean_url:
+            discarded = DiscardedCandidate(url=cand.link or "(empty URL)", reason="Empty or invalid URL")
+            discarded_candidates.append(discarded)
+            continue
+
         res = classify_competitor(cand, context)
         
         if res.valid:
-            competitor = Competitor(
-                name=urlparse(cand.clean_url).netloc,
-                url=cand.clean_url,
-                justification=res.justification or ""
-            )
-            
+            netloc = urlparse(cand.clean_url).netloc
+            # Additional safety check: ensure netloc is not empty
+            if not netloc:
+                discarded = DiscardedCandidate(url=cand.clean_url, reason="Invalid URL structure (empty domain)")
+                discarded_candidates.append(discarded)
+                continue
+
+            competitor = Competitor(name=netloc, url=cand.clean_url, justification=res.justification or "")
+
             if res.type == "HDA":
                 hda_competitors.append(competitor)
             else:
@@ -523,11 +901,13 @@ def _classify_all_candidates(
     
     return hda_competitors, lda_competitors, discarded_candidates
 
+    return hda_competitors, lda_competitors, discarded_candidates
+
 
 async def _web_search_strategy(context: BrandContext) -> ScanReport:
     """
     Estrategia de búsqueda web con clasificación basada en señales.
-    
+
     Flow:
     1. Generar queries dinámicas (geolocalizadas si aplica)
     2. Búsqueda inicial concurrente
@@ -536,23 +916,23 @@ async def _web_search_strategy(context: BrandContext) -> ScanReport:
     5. Construcción del reporte final
     """
     print("⚠️ Fallback to Web Search (Signals)...")
-    
+
     # 1. Generar queries
     queries = _generate_search_queries(context)
-    
+    # Guardar las queries generadas en el context
+    context.search_queries = queries
+
     # 2. Búsqueda inicial
     raw_candidates, discovered_names = await _search_initial_candidates(queries, context)
-    
+
     # 3. Búsqueda directa
     seen = {c.clean_url for c in raw_candidates}
     direct_candidates = await _search_discovered_competitors(discovered_names, seen)
     raw_candidates.extend(direct_candidates)
-    
+
     # 4. Clasificación
-    hda_competitors, lda_competitors, discarded_candidates = _classify_all_candidates(
-        raw_candidates, context
-    )
-    
+    hda_competitors, lda_competitors, discarded_candidates = _classify_all_candidates(raw_candidates, context)
+
     # 5. Limitar resultados y retornar reporte
     return ScanReport(
         HDA_Competitors=hda_competitors[:5],
@@ -561,30 +941,35 @@ async def _web_search_strategy(context: BrandContext) -> ScanReport:
     )
 
 
-async def run_compas_scan(user_input: str) -> ScanReport:
+async def run_compas_scan(user_input: str) -> tuple[ScanReport, BrandContext]:
     """
     Función principal de escaneo de competidores.
-    
+
     Strategy:
     1. Get brand context (name, url, keywords, country)
     2. Try AI-First strategy (Gemini)
     3. Fallback to web search strategy if AI fails
-    
+
     Args:
         user_input: Brand name or URL to analyze
-    
+
     Returns:
-        ScanReport with HDA/LDA competitors and discarded candidates
+        Tuple of (ScanReport, BrandContext) with competitors and search context
     """
     print(f"🚀 Starting CompasScan 2.0 (AI-First) for: {user_input}...\n")
-    
+
     # 1. Get brand context
     context = await get_brand_context(user_input)
-    
-    # 2. Try AI strategy first
+
+    # 2. Generate search queries (para mostrar en UI incluso si usamos AI)
+    queries = _generate_search_queries(context)
+    context.search_queries = queries
+
+    # 3. Try AI strategy first
     ai_result = await _try_ai_strategy(context)
     if ai_result:
-        return ai_result
-    
-    # 3. Fallback to web search strategy
-    return await _web_search_strategy(context)
+        return ai_result, context
+
+    # 4. Fallback to web search strategy
+    web_result = await _web_search_strategy(context)
+    return web_result, context

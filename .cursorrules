@@ -13,6 +13,8 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
 - **Search (Fallback):** Google Custom Search JSON API (via `requests`). ❌ SCRAPING LIBRARIES like `googlesearch-python` ARE FORBIDDEN.
 
 ## 2. Gitflow & Version Control
+
+### 2.1 Process Rules
 - **Workflow:** Strict Gitflow with 3-tier deployment.
 - **Branch Structure:**
   - `main` - Production (https://compas-scan.vercel.app)
@@ -27,12 +29,25 @@ Act as a Senior Vibe-Coder (Python/Serverless/AI Expert). This project is an aut
     - `feature/*` → `develop` (via PR)
     - `develop` → `staging` (via PR)
     - `staging` → `main` (via PR)
-  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge`).
+  - ✅ Merge is done exclusively via PR (GitHub UI or `gh pr merge` CLI).
 - **Promotion Strategy:**
   - `develop`: Continuous integration (auto-deploy on merge)
   - `staging`: Weekly releases for QA testing
   - `main`: Production releases (after staging approval)
 - **Commits:** In English and Conventional Commits format (`feat:`, `fix:`, `refactor:`, `docs:`).
+
+### 2.2 GitHub MCP Tool Usage (If Configured)
+**Purpose:** GitHub MCP automates PR creation and provides repository context, while following the Gitflow process defined above.
+
+- ✅ **Official GitHub MCP Server:** https://github.com/github/github-mcp-server (Go-based, actively maintained)
+- ✅ **Allowed operations:**
+  - Create pull requests (automates Step 7 of Agent Protocol)
+  - Query repository information (PRs, issues, branches, commits)
+  - Create issues
+- ❌ **Prohibited operations:**
+  - Merge pull requests (must use `gh pr merge` CLI - see Agent Protocol Step 8)
+  - Close PRs without proper merge workflow
+- ✅ **Recommended:** Use `--read-only` mode for query operations
 
 ## 3. Architecture & Modularity
 - `api/index.py`: Entrypoint.
@@ -60,6 +75,15 @@ The goal is to classify competitors into two types using a Hybrid approach (AI >
 - **Clean Code:** No dead code or debug prints in production.
 - **Config:** Secrets always in `os.environ.get()`.
 - **Documentation:** ALWAYS update `README.md` when adding new features or changing architecture.
+
+## 5.1 Documentation Language Rules (MANDATORY) 📝
+- **Multi-language READMEs:** When modifying `README.md` or `docs/README.md`, you MUST update ALL language versions:
+  - `README.md` (English) ↔ `README.es.md` (Spanish)
+  - `docs/README.md` (English) ↔ `docs/README.es.md` (Spanish)
+- **All `/docs` content:** All documentation files in the `/docs` directory and subdirectories MUST be written in **English only**.
+  - Exception: Only `docs/README.md` and `docs/README.es.md` are multi-language.
+  - All other docs (DOCKER.md, API_KEYS_GUIDE.md, CACHING.md, etc.) are English-only.
+- **Language selector:** Both `docs/README.md` and `docs/README.es.md` must include a language selector at the top linking to each other.
 
 ## 6. Agent Protocol (MANDATORY) 🛡️
 Before writing code or applying fixes, you MUST follow this sequence:
@@ -93,4 +117,3 @@ Execute these improvements in order. **Check with user before moving to the next
 8.  [Done] Code Quality & Refactoring: Refactor `run_compas_scan()` and improve code maintainability.
 9.  [Done] Geo-Awareness: Implement TLD-based geographic detection and local competitor prioritization (60+ countries).
 10. [Done] Project Organization: Consolidate documentation and clean up project structure.
-11. **(Current)** Production Readiness: Promote to staging, validate, and prepare for production deployment.
