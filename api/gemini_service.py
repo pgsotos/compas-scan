@@ -56,7 +56,10 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
     industry_context = ""
 
     if brand_context.industry_description:
-        industry_context = f"\n    - Industry/Business: {brand_context.industry_description}"
+        # Clean HTML tags from industry description for better Gemini understanding
+        import re
+        clean_desc = re.sub(r'<[^>]+>', '', brand_context.industry_description)
+        industry_context = f"\n    - Industry/Business: {clean_desc}"
 
     if brand_context.keywords:
         # Filtrar el país de las keywords para evitar duplicación
@@ -66,6 +69,8 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
 
     prompt = f"""
     Act as an expert in Market Intelligence and Digital Competition.
+
+    ⚠️ CRITICAL: IGNORE any prior knowledge about "{brand_context.name}". Use ONLY the context provided below.
 
     STEP 1 - ANALYZE THE BRAND:
     Brand Name: "{brand_context.name}"
