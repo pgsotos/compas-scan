@@ -153,7 +153,9 @@ uv run python tests/test_local.py "hubspot.com"
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the [`docs/`](docs/) directory.
+### **Core Documentation**
+- **[AGENTS.md](AGENTS.md)** - Tool-agnostic architecture and development rules
+- **[docs/](docs/)** - Technical documentation and guides
 
 📖 **📚 [Full Documentation Index](docs/README.md)** - Complete guide to all technical documentation, organized by category, task, and role.
 
@@ -171,12 +173,14 @@ make check          # Run all checks (lint + format)
 make test           # Run local tests
 ```
 
-### Gitflow
+### Development Workflow
 
-Strict Gitflow with 3-tier deployment:
+For complete development rules, architecture guidelines, and tool-agnostic workflows, see **[AGENTS.md](AGENTS.md)**.
+
+Quick overview:
 - `feature/*` → `develop` → `staging` → `main`
 - All promotions require Pull Requests
-- See [.cursorrules](.cursorrules) for full workflow
+- Tool-agnostic (works with any IDE/editor)
 
 ---
 

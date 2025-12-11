@@ -173,12 +173,14 @@ make check          # Ejecutar todas las verificaciones (lint + format)
 make test           # Ejecutar tests locales
 ```
 
-### Gitflow
+### Flujo de Desarrollo
 
-Gitflow estricto con deployment de 3 niveles:
+Para reglas completas de desarrollo, arquitectura y flujos agnósticos a herramientas, ver **[AGENTS.md](AGENTS.md)**.
+
+Resumen rápido:
 - `feature/*` → `develop` → `staging` → `main`
 - Todas las promociones requieren Pull Requests
-- Ver [.cursorrules](.cursorrules) para el flujo completo
+- Agnóstico a herramientas (funciona con cualquier IDE/editor)
 
 ---
 
