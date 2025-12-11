@@ -64,7 +64,7 @@ function getApiUrl(): string {
  */
 export async function scanCompetitors(brand: string, signal?: AbortSignal): Promise<ScanResponse> {
   const apiUrl = getApiUrl();
-  const url = `${apiUrl}/?brand=${encodeURIComponent(brand)}`;
+  const url = `${apiUrl}/scan?brand=${encodeURIComponent(brand)}`;
 
   const response = await fetch(url, {
     method: "GET",

@@ -216,6 +216,99 @@ async def health_check():
     )
 
 
+@api_router.get(
+    "/scan", response_model=ScanResponse, summary="Escanear competidores de una marca (endpoint específico)"
+)
+async def scan_competitors_endpoint(
+    brand: str = Query(
+        ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
+    ),
+):
+    """
+    Endpoint específico para escanear competidores de una marca.
+
+    Este endpoint resuelve el problema de query parameters con el proxy de Next.js.
+    Usa una ruta explícita /api/scan en lugar de /api/ con query params.
+
+    **Parámetros:**
+    - `brand`: Nombre de la marca (ej. 'Hulu') o dominio (ej. 'hulu.com')
+
+    **Respuesta:**
+    - `HDA_Competitors`: Competidores de alto dominio/autoridad (gigantes digitales)
+    - `LDA_Competitors`: Competidores de nicho o emergentes
+    - `Discarded_Candidates`: Candidatos rechazados con razón
+    - `warnings`: Advertencias no críticas (ej. error de persistencia)
+    """
+    warnings: list[str] = []
+
+    try:
+        # Add breadcrumb for scan start
+        add_breadcrumb(f"Starting competitor scan for: {brand}", category="scan", level="info")
+
+        # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
+        scan_report, brand_context = await run_compas_scan(brand)
+
+        # Calculate metrics
+        total_competitors = len(scan_report.HDA_Competitors) + len(scan_report.LDA_Competitors)
+
+        # Add breadcrumb for scan completion
+        add_breadcrumb(
+            f"Scan completed: {total_competitors} competitors found",
+            category="scan",
+            level="info",
+            data={
+                "hda_count": len(scan_report.HDA_Competitors),
+                "lda_count": len(scan_report.LDA_Competitors),
+                "discarded": len(scan_report.Discarded_Candidates),
+            },
+        )
+
+        # 2. Persistencia Opcional (No crítica)
+        if os.environ.get("SUPABASE_URL"):
+            try:
+                save_scan_results(brand, scan_report.model_dump())
+                add_breadcrumb("Results saved to database", category="database", level="info")
+            except Exception as db_error:
+                warning_msg = f"Database persistence failed (non-critical): {str(db_error)}"
+                print(f"⚠️ {warning_msg}")
+                warnings.append("Could not save to database (continuing with scan)")
+                add_breadcrumb(
+                    "Database save failed", category="database", level="warning", data={"error": str(db_error)}
+                )
+        else:
+            print("ℹ️ Supabase not configured. Skipping persistence.")
+
+        # Track successful scan in Sentry
+        track_scan_event(
+            brand=brand,
+            competitors_found=total_competitors,
+            strategy="ai_first",  # Could be dynamic based on actual strategy used
+            success=True,
+        )
+
+        # 3. Respuesta Exitosa
+        return ScanResponse(
+            status="success",
+            target=brand,
+            data=scan_report,
+            message="Scan completed successfully.",
+            warnings=warnings if warnings else None,
+            brand_context=brand_context,
+        )
+
+    except Exception as e:
+        # Critical error in business logic
+        print(f"❌ Critical Error in Scan: {e}")
+
+        # Capture exception with context
+        capture_exception(e, brand=brand, endpoint="scan_competitors_endpoint", error_type=type(e).__name__)
+
+        # Track failed scan
+        track_scan_event(brand=brand, competitors_found=0, strategy="unknown", success=False)
+
+        raise HTTPException(status_code=500, detail="Error processing competitor scan.")
+
+
 @api_router.get("/sentry-debug", summary="Sentry Debug - Trigger Test Error")
 async def trigger_sentry_error():
     """
