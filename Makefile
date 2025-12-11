@@ -1,105 +1,123 @@
-.PHONY: help install lint format check test clean lint-frontend format-frontend format-check-frontend type-check-frontend check-frontend check-all
+.PHONY: help install lint format check test clean lint-frontend format-frontend format-check-frontend type-check-frontend check-frontend check-all dev-up dev-down dev-logs dev-shell dev-test
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install:  ## Install dependencies
-	pip install -r requirements.txt
+# === Development (Docker-First) ===
 
-lint:  ## Run Ruff linter
-	ruff check api/ tests/
+dev-up:  ## 🚀 Start complete development environment (Docker)
+	docker-compose up -d --build
+	@echo "✅ Development environment started!"
+	@echo "🌐 Frontend: http://localhost:3000"
+	@echo "🔧 Backend:  http://localhost:8000"
+	@echo "📊 Redis:    redis://localhost:6379"
 
-lint-fix:  ## Run Ruff linter with auto-fix
-	ruff check --fix api/ tests/
+dev-down:  ## 🛑 Stop development environment
+	docker-compose down
+	@echo "✅ Development environment stopped!"
 
-format:  ## Format code with Ruff
-	ruff format api/ tests/
+dev-logs:  ## 📋 Show all logs
+	docker-compose logs -f
 
-format-check:  ## Check code formatting without making changes
-	ruff format --check api/ tests/
+dev-logs-backend:  ## 📋 Show backend logs
+	docker-compose logs -f backend
 
-check: lint format-check  ## Run all backend checks (lint + format check)
+dev-logs-frontend:  ## 📋 Show frontend logs
+	docker-compose logs -f frontend
+
+dev-shell-backend:  ## 🐚 Open shell in backend container
+	docker-compose exec backend /bin/bash
+
+dev-shell-frontend:  ## 🐚 Open shell in frontend container
+	docker-compose exec frontend /bin/sh
+
+dev-restart:  ## 🔄 Restart all services
+	docker-compose restart
+	@echo "✅ Services restarted!"
+
+dev-test:  ## 🧪 Run tests in development environment
+	docker-compose exec backend python tests/test_local.py "Nike"
+
+dev-clean:  ## 🧹 Clean all Docker resources
+	docker-compose down -v --rmi all
+	docker system prune -f
+	@echo "✅ Docker environment cleaned!"
+
+# === Backend Commands ===
+
+install-backend:  ## Install backend dependencies (for local development)
+	cd backend && pip install -r requirements.txt
+
+lint-backend:  ## Run Ruff linter for backend
+	ruff check backend/src/ backend/tests/
+
+lint-fix-backend:  ## Run Ruff linter with auto-fix for backend
+	ruff check --fix backend/src/ backend/tests/
+
+format-backend:  ## Format backend code with Ruff
+	ruff format backend/src/ backend/tests/
+
+format-check-backend:  ## Check backend code formatting
+	ruff format --check backend/src/ backend/tests/
+
+check-backend: lint-backend format-check-backend  ## Run all backend checks
+
+test-backend:  ## Run backend tests
+	cd backend && python -m pytest tests/ -v
 
 # === Frontend Commands ===
 
+install-frontend:  ## Install frontend dependencies (for local development)
+	cd frontend && bun install
+
 lint-frontend:  ## Run ESLint for frontend
-	bun run lint
+	cd frontend && bun run lint
 
 lint-fix-frontend:  ## Run ESLint with auto-fix for frontend
-	bun run lint:fix
+	cd frontend && bun run lint:fix
 
 format-frontend:  ## Format frontend code with Prettier
-	bun run format
+	cd frontend && bun run format
 
-format-check-frontend:  ## Check frontend code formatting without making changes
-	bun run format:check
+format-check-frontend:  ## Check frontend code formatting
+	cd frontend && bun run format:check
 
 type-check-frontend:  ## Run TypeScript type checking
-	bun run type-check
+	cd frontend && bun run type-check
 
 check-frontend: lint-frontend format-check-frontend type-check-frontend  ## Run all frontend checks
 
-check-all: check check-frontend  ## Run all checks (backend + frontend)
+test-frontend:  ## Run frontend tests
+	cd frontend && bun run test
 
-test:  ## Run local test
-	python tests/test_local.py "Nike"
+# === Combined Commands ===
+
+install: install-backend install-frontend  ## Install all dependencies
+
+check: check-backend check-frontend  ## Run all checks (backend + frontend)
+
+test: test-backend test-frontend  ## Run all tests
 
 clean:  ## Clean cache and temporary files
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete
+	find . -type d -name "node_modules" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".next" -exec rm -rf {} + 2>/dev/null || true
 	rm -f results.json
+	@echo "✅ Cache and temporary files cleaned!"
 
-dev:  ## Start development server (local)
-	uvicorn api.index:app --reload --host 127.0.0.1 --port 8000
+# === Legacy Commands (Deprecated) ===
 
-# === Docker Commands ===
+dev:  ## ⚠️  Deprecated: Use 'dev-up' instead
+	@echo "⚠️  'dev' is deprecated. Use 'dev-up' for Docker-first development!"
+	@echo "💡 Run 'make dev-up' to start the complete environment."
 
-docker-build:  ## Build Docker images
-	docker-compose build
-
-docker-build-api:  ## Build only API Docker image
-	docker-compose build api
-
-docker-build-frontend:  ## Build only Frontend Docker image
-	docker-compose build frontend
-
-docker-up:  ## Start services with Docker Compose
-	docker-compose up -d
-
-docker-down:  ## Stop services
-	docker-compose down
-
-docker-logs:  ## Show logs (all services)
-	docker-compose logs -f
-
-docker-logs-api:  ## Show API logs
-	docker-compose logs -f api
-
-docker-logs-frontend:  ## Show Frontend logs
-	docker-compose logs -f frontend
-
-docker-restart:  ## Restart services
-	docker-compose restart
-
-docker-restart-api:  ## Restart API service
-	docker-compose restart api
-
-docker-restart-frontend:  ## Restart Frontend service
-	docker-compose restart frontend
-
-docker-clean:  ## Clean all containers, volumes, and images
-	docker-compose down -v --rmi all
-
-docker-shell:  ## Open shell in API container
-	docker-compose exec api /bin/bash
-
-docker-shell-frontend:  ## Open shell in Frontend container
-	docker-compose exec frontend /bin/sh
-
-docker-test:  ## Run tests in container
-	docker-compose exec api python tests/test_local.py "Nike"
+docker-up: dev-up  ## Alias for dev-up
+docker-down: dev-down  ## Alias for dev-down
+docker-logs: dev-logs  ## Alias for dev-logs
+docker-test: dev-test  ## Alias for dev-test
 

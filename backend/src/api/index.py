@@ -8,11 +8,11 @@ from fastapi.responses import JSONResponse
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-from .cache import cache
-from .compas_core import run_compas_scan
-from .db import save_scan_results
-from .models import HealthCheckResponse, ScanResponse
-from .observability import (
+from ..services.cache import cache
+from ..core.compas_core import run_compas_scan
+from ..utils.db import save_scan_results
+from ..models.models import HealthCheckResponse, ScanResponse
+from ..services.observability import (
     add_breadcrumb,
     capture_exception,
     init_sentry,
@@ -28,7 +28,7 @@ IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
 init_sentry()
 
 # Inicializar FastAPI App
-# redirect_slashes=False to handle /api/ and /api the same way
+# redirect_slashes=False to handle /api/ and /api same way
 # Note: Vercel passes paths WITHOUT /api/ prefix
 # We configure docs to work with /api prefix via root_path in request
 app = FastAPI(
@@ -42,7 +42,7 @@ app = FastAPI(
 
 # Create API router with /api prefix
 # Vercel routes /api/* to this file, but passes paths WITHOUT /api prefix
-# So we add the prefix here to match the external URLs
+# So we add prefix here to match external URLs
 api_router = APIRouter(prefix="/api")
 
 # Configurar CORS
@@ -102,7 +102,7 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={
             "status": "error",
-            "message": "Internal server error processing the request.",
+            "message": "Internal server error processing request.",
             "debug": str(exc) if not IS_PRODUCTION else None,
         },
     )
@@ -216,6 +216,101 @@ async def health_check():
     )
 
 
+@api_router.get(
+    "/scan", response_model=ScanResponse, summary="Escanear competidores de una marca (endpoint específico)"
+)
+async def scan_competitors_endpoint(
+    brand: str = Query(
+        ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
+    ),
+):
+    """Endpoint específico para escanear competidores - reutiliza lógica principal"""
+    return await scan_competitors(brand)
+    """
+    Endpoint específico para escanear competidores de una marca.
+
+    Este endpoint resuelve el problema de query parameters con el proxy de Next.js.
+    Usa una ruta explícita /api/scan en lugar de /api/ con query params.
+
+    **Parámetros:**
+    - `brand`: Nombre de la marca (ej. 'Hulu') o dominio (ej. 'hulu.com')
+
+    **Respuesta:**
+    - `HDA_Competitors`: Competidores de alto dominio/autoridad (gigantes digitales)
+    - `LDA_Competitors`: Competidores de nicho o emergentes
+    - `Discarded_Candidates`: Candidatos rechazados con razón
+    - `warnings`: Advertencias no críticas (ej. error de persistencia)
+    """
+    warnings: list[str] = []
+
+    try:
+        # Add breadcrumb for scan start
+        add_breadcrumb(f"Starting competitor scan for: {brand}", category="scan", level="info")
+
+        # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
+        scan_report, brand_context = await run_compas_scan(brand)
+
+        # Calculate metrics
+        total_competitors = len(scan_report.HDA_Competitors) + len(scan_report.LDA_Competitors)
+
+        # Add breadcrumb for scan completion
+        add_breadcrumb(
+            f"Scan completed: {total_competitors} competitors found",
+            category="scan",
+            level="info",
+            data={
+                "hda_count": len(scan_report.HDA_Competitors),
+                "lda_count": len(scan_report.LDA_Competitors),
+                "discarded": len(scan_report.Discarded_Candidates),
+            },
+        )
+
+        # 2. Persistencia Opcional (No crítica)
+        if os.environ.get("SUPABASE_URL"):
+            try:
+                save_scan_results(brand, scan_report.model_dump())
+                add_breadcrumb("Results saved to database", category="database", level="info")
+            except Exception as db_error:
+                warning_msg = f"Database persistence failed (non-critical): {str(db_error)}"
+                print(f"⚠️ {warning_msg}")
+                warnings.append("Could not save to database (continuing with scan)")
+                add_breadcrumb(
+                    "Database save failed", category="database", level="warning", data={"error": str(db_error)}
+                )
+        else:
+            print("ℹ️ Supabase not configured. Skipping persistence.")
+
+        # Track successful scan in Sentry
+        track_scan_event(
+            brand=brand,
+            competitors_found=total_competitors,
+            strategy="ai_first",  # Could be dynamic based on actual strategy used
+            success=True,
+        )
+
+        # 3. Respuesta Exitosa
+        return ScanResponse(
+            status="success",
+            target=brand,
+            data=scan_report,
+            message="Scan completed successfully.",
+            warnings=warnings if warnings else None,
+            brand_context=brand_context,
+        )
+
+    except Exception as e:
+        # Critical error in business logic
+        print(f"❌ Critical Error in Scan: {e}")
+
+        # Capture exception with context
+        capture_exception(e, brand=brand, endpoint="scan_competitors_endpoint", error_type=type(e).__name__)
+
+        # Track failed scan
+        track_scan_event(brand=brand, competitors_found=0, strategy="unknown", success=False)
+
+        raise HTTPException(status_code=500, detail="Error processing competitor scan.")
+
+
 @api_router.get("/sentry-debug", summary="Sentry Debug - Trigger Test Error")
 async def trigger_sentry_error():
     """
@@ -256,17 +351,11 @@ async def scan_competitors_root(
     brand: str = Query(..., min_length=2),
 ):
     """Root endpoint for local development (redirects to /api/)."""
-    import os
-
-    from .compas_core import run_compas_scan
-
     warnings: list[str] = []
     scan_report, brand_context = await run_compas_scan(brand)
 
     if os.environ.get("SUPABASE_URL"):
         try:
-            from .db import save_scan_results
-
             save_scan_results(brand, scan_report.model_dump())
         except Exception:
             warnings.append("Could not save to database (continuing with scan)")
