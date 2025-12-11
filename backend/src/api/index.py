@@ -224,6 +224,8 @@ async def scan_competitors_endpoint(
         ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
     ),
 ):
+    """Endpoint específico para escanear competidores - reutiliza lógica principal"""
+    return await scan_competitors(brand)
     """
     Endpoint específico para escanear competidores de una marca.
 
