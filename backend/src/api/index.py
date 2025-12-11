@@ -8,11 +8,11 @@ from fastapi.responses import JSONResponse
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-from .cache import cache
-from .compas_core import run_compas_scan
-from .db import save_scan_results
-from .models import HealthCheckResponse, ScanResponse
-from .observability import (
+from ..services.cache import cache
+from ..core.compas_core import run_compas_scan
+from ..utils.db import save_scan_results
+from ..models.models import HealthCheckResponse, ScanResponse
+from ..services.observability import (
     add_breadcrumb,
     capture_exception,
     init_sentry,
@@ -28,7 +28,7 @@ IS_PRODUCTION = os.environ.get("VERCEL_ENV") == "production"
 init_sentry()
 
 # Inicializar FastAPI App
-# redirect_slashes=False to handle /api/ and /api the same way
+# redirect_slashes=False to handle /api/ and /api same way
 # Note: Vercel passes paths WITHOUT /api/ prefix
 # We configure docs to work with /api prefix via root_path in request
 app = FastAPI(
@@ -42,7 +42,7 @@ app = FastAPI(
 
 # Create API router with /api prefix
 # Vercel routes /api/* to this file, but passes paths WITHOUT /api prefix
-# So we add the prefix here to match the external URLs
+# So we add prefix here to match external URLs
 api_router = APIRouter(prefix="/api")
 
 # Configurar CORS
@@ -102,7 +102,7 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={
             "status": "error",
-            "message": "Internal server error processing the request.",
+            "message": "Internal server error processing request.",
             "debug": str(exc) if not IS_PRODUCTION else None,
         },
     )
@@ -256,17 +256,11 @@ async def scan_competitors_root(
     brand: str = Query(..., min_length=2),
 ):
     """Root endpoint for local development (redirects to /api/)."""
-    import os
-
-    from .compas_core import run_compas_scan
-
     warnings: list[str] = []
     scan_report, brand_context = await run_compas_scan(brand)
 
     if os.environ.get("SUPABASE_URL"):
         try:
-            from .db import save_scan_results
-
             save_scan_results(brand, scan_report.model_dump())
         except Exception:
             warnings.append("Could not save to database (continuing with scan)")

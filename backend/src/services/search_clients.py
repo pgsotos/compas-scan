@@ -19,7 +19,7 @@ from typing import Optional
 
 import httpx
 
-from .observability import add_span_context, capture_exception
+from ..services.observability import add_span_context, capture_exception
 
 
 class BraveSearchClient:

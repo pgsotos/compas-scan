@@ -8,8 +8,8 @@ from urllib.parse import urlparse
 import httpx
 from bs4 import BeautifulSoup
 
-from .cache import cache
-from .constants import (
+from ..services.cache import cache
+from ..utils.constants import (
     FAMOUS_DOMAINS,
     HEADERS,
     IGNORED_DOMAINS,
@@ -20,10 +20,10 @@ from .constants import (
     STOP_WORDS,
     TLD_TO_COUNTRY,
 )
-from .gemini_service import get_competitors_from_gemini
-from .mocks import clean_url
-from .models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
-from .search_clients import brave_search
+from ..services.gemini_service import get_competitors_from_gemini
+from ..utils.mocks import clean_url
+from ..models.models import BrandContext, ClassificationResult, Competitor, CompetitorCandidate, DiscardedCandidate, ScanReport
+from ..services.search_clients import brave_search
 
 
 def get_root_domain(url: str) -> str:

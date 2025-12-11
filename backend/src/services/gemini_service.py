@@ -4,8 +4,8 @@ import os
 import google.generativeai as genai  # type: ignore
 from pydantic import ValidationError
 
-from .cache import cache
-from .models import CompetitorCandidate, GeminiCompetitor
+from ..services.cache import cache
+from ..models.models import CompetitorCandidate, GeminiCompetitor
 
 # Configurar la API key al importar el módulo
 api_key = os.environ.get("GEMINI_API_KEY")

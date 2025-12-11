@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // Rewrite API requests to Python FastAPI backend
   async rewrites() {
     // In development, proxy to local backend (port 8000)
-    // In Docker, proxy to api service (http://api:8000)
+    // In Docker, proxy to backend service (http://backend:8000)
     // In production/Vercel, DO NOT rewrite - let Vercel handle /api/* routing
     const isDevelopment = process.env.NODE_ENV === "development";
     const isDocker = process.env.DOCKER === "true";
@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
 
     // Only rewrite in local development or Docker
     if ((isDevelopment || isDocker) && !isVercel) {
-      const backendUrl = isDocker ? "http://api:8000" : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const backendUrl = isDocker ? "http://backend:8000" : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
       if (backendUrl.startsWith("http")) {
         // Development/Docker: proxy /api/* to backend root
