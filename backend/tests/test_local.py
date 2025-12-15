@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Importamos las funciones principales
-from api import compas_core, db
+from src.core import compas_core
+from src.utils import db
 
 
 async def main():
