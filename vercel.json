@@ -8,7 +8,7 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "installCommand": "uv add --active --prerelease=allow -r /vercel/path1/requirements.txt"
+        "installCommand": "uv add --active --prerelease=allow --frozen -r /vercel/path1/requirements.txt"
       }
     }
   ],
