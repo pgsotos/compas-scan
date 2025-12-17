@@ -8,11 +8,11 @@ from fastapi.responses import JSONResponse
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-from ..services.cache import cache
-from ..core.compas_core import run_compas_scan
-from ..utils.db import save_scan_results
-from ..models.models import HealthCheckResponse, ScanResponse
-from ..services.observability import (
+from services.cache import cache
+from core.compas_core import run_compas_scan
+from utils.db import save_scan_results
+from models.models import HealthCheckResponse, ScanResponse
+from services.observability import (
     add_breadcrumb,
     capture_exception,
     init_sentry,
@@ -91,7 +91,11 @@ async def http_exception_handler(request, exc):
     """Maneja excepciones HTTP con formato consistente."""
     return JSONResponse(
         status_code=exc.status_code,
-        content={"status": "error", "message": exc.detail, "debug": str(exc) if not IS_PRODUCTION else None},
+        content={
+            "status": "error",
+            "message": exc.detail,
+            "debug": str(exc) if not IS_PRODUCTION else None,
+        },
     )
 
 
@@ -111,11 +115,18 @@ async def general_exception_handler(request, exc):
 # --- Endpoints ---
 
 
-@api_router.get("/", response_model=ScanResponse, summary="Escanear competidores de una marca")
-@api_router.get("", response_model=ScanResponse, include_in_schema=False)  # Handle /api without trailing slash
+@api_router.get(
+    "/", response_model=ScanResponse, summary="Escanear competidores de una marca"
+)
+@api_router.get(
+    "", response_model=ScanResponse, include_in_schema=False
+)  # Handle /api without trailing slash
 async def scan_competitors(
     brand: str = Query(
-        ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
+        ...,
+        description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')",
+        min_length=2,
+        example="Hulu",
     ),
 ):
     """
@@ -138,13 +149,17 @@ async def scan_competitors(
 
     try:
         # Add breadcrumb for scan start
-        add_breadcrumb(f"Starting competitor scan for: {brand}", category="scan", level="info")
+        add_breadcrumb(
+            f"Starting competitor scan for: {brand}", category="scan", level="info"
+        )
 
         # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
         scan_report, brand_context = await run_compas_scan(brand)
 
         # Calculate metrics
-        total_competitors = len(scan_report.HDA_Competitors) + len(scan_report.LDA_Competitors)
+        total_competitors = len(scan_report.HDA_Competitors) + len(
+            scan_report.LDA_Competitors
+        )
 
         # Add breadcrumb for scan completion
         add_breadcrumb(
@@ -162,13 +177,20 @@ async def scan_competitors(
         if os.environ.get("SUPABASE_URL"):
             try:
                 save_scan_results(brand, scan_report.model_dump())
-                add_breadcrumb("Results saved to database", category="database", level="info")
+                add_breadcrumb(
+                    "Results saved to database", category="database", level="info"
+                )
             except Exception as db_error:
-                warning_msg = f"Database persistence failed (non-critical): {str(db_error)}"
+                warning_msg = (
+                    f"Database persistence failed (non-critical): {str(db_error)}"
+                )
                 print(f"⚠️ {warning_msg}")
                 warnings.append("Could not save to database (continuing with scan)")
                 add_breadcrumb(
-                    "Database save failed", category="database", level="warning", data={"error": str(db_error)}
+                    "Database save failed",
+                    category="database",
+                    level="warning",
+                    data={"error": str(db_error)},
                 )
         else:
             print("ℹ️ Supabase not configured. Skipping persistence.")
@@ -196,10 +218,14 @@ async def scan_competitors(
         print(f"❌ Critical Error in Scan: {e}")
 
         # Capture exception with context
-        capture_exception(e, brand=brand, endpoint="scan_competitors", error_type=type(e).__name__)
+        capture_exception(
+            e, brand=brand, endpoint="scan_competitors", error_type=type(e).__name__
+        )
 
         # Track failed scan
-        track_scan_event(brand=brand, competitors_found=0, strategy="unknown", success=False)
+        track_scan_event(
+            brand=brand, competitors_found=0, strategy="unknown", success=False
+        )
 
         raise HTTPException(status_code=500, detail="Error processing competitor scan.")
 
@@ -217,11 +243,16 @@ async def health_check():
 
 
 @api_router.get(
-    "/scan", response_model=ScanResponse, summary="Escanear competidores de una marca (endpoint específico)"
+    "/scan",
+    response_model=ScanResponse,
+    summary="Escanear competidores de una marca (endpoint específico)",
 )
 async def scan_competitors_endpoint(
     brand: str = Query(
-        ..., description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')", min_length=2, example="Hulu"
+        ...,
+        description="Nombre o URL de la marca objetivo (ej. 'Hulu' o 'hulu.com')",
+        min_length=2,
+        example="Hulu",
     ),
 ):
     """Endpoint específico para escanear competidores - reutiliza lógica principal"""
@@ -245,13 +276,17 @@ async def scan_competitors_endpoint(
 
     try:
         # Add breadcrumb for scan start
-        add_breadcrumb(f"Starting competitor scan for: {brand}", category="scan", level="info")
+        add_breadcrumb(
+            f"Starting competitor scan for: {brand}", category="scan", level="info"
+        )
 
         # 1. Ejecutar Lógica de Negocio (AI-First con Fallback)
         scan_report, brand_context = await run_compas_scan(brand)
 
         # Calculate metrics
-        total_competitors = len(scan_report.HDA_Competitors) + len(scan_report.LDA_Competitors)
+        total_competitors = len(scan_report.HDA_Competitors) + len(
+            scan_report.LDA_Competitors
+        )
 
         # Add breadcrumb for scan completion
         add_breadcrumb(
@@ -269,13 +304,20 @@ async def scan_competitors_endpoint(
         if os.environ.get("SUPABASE_URL"):
             try:
                 save_scan_results(brand, scan_report.model_dump())
-                add_breadcrumb("Results saved to database", category="database", level="info")
+                add_breadcrumb(
+                    "Results saved to database", category="database", level="info"
+                )
             except Exception as db_error:
-                warning_msg = f"Database persistence failed (non-critical): {str(db_error)}"
+                warning_msg = (
+                    f"Database persistence failed (non-critical): {str(db_error)}"
+                )
                 print(f"⚠️ {warning_msg}")
                 warnings.append("Could not save to database (continuing with scan)")
                 add_breadcrumb(
-                    "Database save failed", category="database", level="warning", data={"error": str(db_error)}
+                    "Database save failed",
+                    category="database",
+                    level="warning",
+                    data={"error": str(db_error)},
                 )
         else:
             print("ℹ️ Supabase not configured. Skipping persistence.")
@@ -303,10 +345,17 @@ async def scan_competitors_endpoint(
         print(f"❌ Critical Error in Scan: {e}")
 
         # Capture exception with context
-        capture_exception(e, brand=brand, endpoint="scan_competitors_endpoint", error_type=type(e).__name__)
+        capture_exception(
+            e,
+            brand=brand,
+            endpoint="scan_competitors_endpoint",
+            error_type=type(e).__name__,
+        )
 
         # Track failed scan
-        track_scan_event(brand=brand, competitors_found=0, strategy="unknown", success=False)
+        track_scan_event(
+            brand=brand, competitors_found=0, strategy="unknown", success=False
+        )
 
         raise HTTPException(status_code=500, detail="Error processing competitor scan.")
 

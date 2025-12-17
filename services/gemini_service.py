@@ -4,8 +4,8 @@ import os
 import google.generativeai as genai  # type: ignore
 from pydantic import ValidationError
 
-from ..services.cache import cache
-from ..models.models import CompetitorCandidate, GeminiCompetitor
+from services.cache import cache
+from models.models import CompetitorCandidate, GeminiCompetitor
 
 # Configurar la API key al importar el módulo
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -58,14 +58,21 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
     if brand_context.industry_description:
         # Clean HTML tags from industry description for better Gemini understanding
         import re
-        clean_desc = re.sub(r'<[^>]+>', '', brand_context.industry_description)
+
+        clean_desc = re.sub(r"<[^>]+>", "", brand_context.industry_description)
         industry_context = f"\n    - Industry/Business: {clean_desc}"
 
     if brand_context.keywords:
         # Filtrar el país de las keywords para evitar duplicación
-        filtered_keywords = [kw for kw in brand_context.keywords if kw.lower() != (brand_context.country or "").lower()]
+        filtered_keywords = [
+            kw
+            for kw in brand_context.keywords
+            if kw.lower() != (brand_context.country or "").lower()
+        ]
         if filtered_keywords:
-            keywords_context = f"\n    - Industry Keywords: {', '.join(filtered_keywords[:5])}"
+            keywords_context = (
+                f"\n    - Industry Keywords: {', '.join(filtered_keywords[:5])}"
+            )
 
     prompt = f"""
     Act as an expert in Market Intelligence and Digital Competition.
@@ -147,11 +154,15 @@ async def get_competitors_from_gemini(brand_context) -> list[CompetitorCandidate
                 print(f"⚠️ Gemini candidate validation failed: {ve}")
                 continue
 
-        print(f"   ✅ Gemini encontró {len(validated_candidates)} candidatos validados.")
+        print(
+            f"   ✅ Gemini encontró {len(validated_candidates)} candidatos validados."
+        )
 
         # Save to cache (use same cache key)
         if validated_candidates:
-            await cache.set_gemini_results(cache_key, [c.model_dump() for c in validated_candidates])
+            await cache.set_gemini_results(
+                cache_key, [c.model_dump() for c in validated_candidates]
+            )
 
         return validated_candidates
 
